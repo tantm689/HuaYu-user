@@ -1,9 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams()
+  const oauthError = searchParams.get('error')
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in')
@@ -38,6 +42,8 @@ export default function LoginPage() {
 
     window.location.href = '/home'
   }
+
+  const displayError = error ?? oauthError
 
   return (
     <div className="mx-auto flex min-h-screen max-w-[420px] flex-col justify-center gap-4 px-5 py-8">
@@ -77,7 +83,7 @@ export default function LoginPage() {
           className="rounded-btn border border-card-border bg-card px-4 py-3 text-ink placeholder:text-ink-faint"
         />
 
-        {error && <p className="text-sm font-semibold text-error-text">{error}</p>}
+        {displayError && <p className="text-sm font-semibold text-error-text">{displayError}</p>}
 
         <button
           type="submit"
@@ -96,5 +102,13 @@ export default function LoginPage() {
         {mode === 'sign-in' ? 'Chưa có tài khoản? Đăng ký' : 'Đã có tài khoản? Đăng nhập'}
       </button>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }
