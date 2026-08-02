@@ -18,6 +18,22 @@ export interface Lesson {
   created_at: string
 }
 
+export interface Vocabulary {
+  id: string
+  dialogue_id: string
+  order: number
+  word_zh: string
+  pinyin: string | null
+  meaning_vi: string | null
+  audio_url: string | null
+}
+
+export interface DialogueVocabulary {
+  dialogue_id: string
+  dialogue_order: number
+  words: Vocabulary[]
+}
+
 export type TypingKind = 'vocabulary' | 'dialogue_line'
 
 export interface VocabularyProgress {
