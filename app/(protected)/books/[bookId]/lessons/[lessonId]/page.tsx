@@ -26,7 +26,7 @@ export default async function LessonPage({
 
   return (
     <div className="mx-auto max-w-[660px] px-5 py-6">
-      <BackButton />
+      <BackButton fallbackHref={`/books/${bookId}`} />
 
       <div className="mb-5 rounded-card border border-card-border bg-white p-6 shadow-sm">
         <span className="mb-3 inline-flex items-center gap-1.5 rounded-pill border border-red-100 bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-red">

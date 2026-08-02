@@ -4,6 +4,11 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { getPublishedBooks } from '@/lib/db/getPublishedBooks'
 import { getDueVocabularyCards } from '@/lib/db/getDueVocabularyCards'
 
+// Số từ "Ôn hôm nay" thay đổi ngay sau khi người dùng đánh giá thẻ hoặc bắt đầu
+// học 1 bộ ở trang khác — không được để Next.js dùng bản cache cũ của trang này
+// khi điều hướng quay lại qua <Link>, nếu không số liệu hiển thị sẽ trễ 1 nhịp.
+export const dynamic = 'force-dynamic'
+
 export default async function HomePage() {
   const supabase = await createServerSupabase()
   const [books, dueCards] = await Promise.all([

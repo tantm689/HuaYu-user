@@ -9,7 +9,7 @@ export default async function ReviewPage() {
 
   return (
     <div className="mx-auto max-w-[660px] px-5 py-6">
-      <BackButton />
+      <BackButton fallbackHref="/home" />
 
       <div className="mb-5 rounded-card border border-card-border bg-white p-6 shadow-sm">
         <h1 className="font-han-title text-2xl font-bold text-ink">Ôn hôm nay</h1>

@@ -1,6 +1,7 @@
 'use client'
 
 import { createBrowserSupabase } from '@/lib/supabase/browser'
+import BottomNav from '@/components/BottomNav'
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   async function handleSignOut() {
@@ -10,7 +11,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div>
+    <div className="pb-16">
       <div className="flex justify-end px-5 pt-4">
         <button
           type="button"
@@ -21,6 +22,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         </button>
       </div>
       {children}
+      <BottomNav />
     </div>
   )
 }
