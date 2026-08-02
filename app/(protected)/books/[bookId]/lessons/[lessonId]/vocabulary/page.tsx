@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { getLesson } from '@/lib/db/getLesson'
 import { getLessonVocabulary } from '@/lib/db/getLessonVocabulary'
+import { ensureVocabularyProgress } from '@/lib/db/ensureVocabularyProgress'
+import { getVocabularyProgressForLesson } from '@/lib/db/getVocabularyProgressForLesson'
 import BackButton from '@/components/BackButton'
 import VocabularyFlashcards from './VocabularyFlashcards'
 
@@ -20,6 +22,10 @@ export default async function VocabularyPage({
   if (!lesson) notFound()
 
   const words = dialogueGroups.flatMap((group) => group.words)
+  const vocabularyIds = words.map((w) => w.id)
+
+  await ensureVocabularyProgress(supabase, vocabularyIds)
+  const progress = await getVocabularyProgressForLesson(supabase, vocabularyIds)
 
   return (
     <div className="mx-auto max-w-[660px] px-5 py-6">
@@ -35,7 +41,7 @@ export default async function VocabularyPage({
       {words.length === 0 ? (
         <p className="font-semibold text-ink-faint">Bài này chưa có từ vựng.</p>
       ) : (
-        <VocabularyFlashcards words={words} />
+        <VocabularyFlashcards words={words} progress={progress} />
       )}
     </div>
   )
