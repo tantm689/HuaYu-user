@@ -73,6 +73,12 @@ Không gộp Hội thoại+Từ mới thành luồng liền mạch (chấp nhậ
 
 **Giao diện lật thẻ** (chi tiết UI bàn sau): mặt trước `word_zh`, lật thấy `pinyin` + `meaning_vi` + phát `audio_url`. Sau khi xem đáp án, người dùng tự đánh giá Đúng/Sai (không có nút "khó vừa dễ" 3 mức như Anki thật — chỉ nhị phân theo quyết định Leitner đơn giản).
 
+**Xem cách viết (thêm mới, 2026-08-02):** ở mặt sau đã lật của thẻ, có nút "Xem cách viết" mở khu vực hiển thị hoạt hình thứ tự nét chữ Hán (stroke order animation) của `word_zh` đang xem — **chỉ trình diễn/tham khảo, không phải luyện tập tương tác**:
+- Với `word_zh` nhiều ký tự (ví dụ "你好"), mỗi ký tự có 1 canvas nhỏ riêng, xếp hàng ngang cạnh nhau; animation tự phát lần lượt từng canvas (không cần bấm chọn ký tự trước).
+- Không có chấm điểm đúng/sai, không có bước người dùng tự vẽ lại nét, không ghi/lưu bất kỳ trạng thái nào vào DB — hoàn toàn không tác động đến `box`/`learning_streak`/thuật toán SRS ở trên. Đây thuần túy là công cụ xem tham khảo.
+- **Nguồn dữ liệu nét chữ:** dùng thư viện mã nguồn mở kiểu Hanzi Writer (dữ liệu stroke-order dạng `hanzi-writer-data`/`makemeahanzi`, offline — không gọi API ngoài, không cần Admin nhập tay dữ liệu nét cho từng từ). Thư viện phủ chữ Hán phồn thể (đúng định hướng nội dung "Đương Đại"); ký tự hiếm không có trong bộ dữ liệu thì ẩn nút "Xem cách viết" cho ký tự đó (không crash/vỡ UI).
+- Không có bảng schema mới nào phát sinh cho tính năng này (không cần persist gì) — implementer chỉ cần thêm 1 component hiển thị + 1 dependency thư viện, không đụng migration.
+
 ## 5. Shadowing hội thoại
 
 **Bước 1 — Nghe cảm âm:** phát `dialogues.audio_url` (audio cả đoạn hội thoại), nghe lại tùy ý, không ghi âm.
