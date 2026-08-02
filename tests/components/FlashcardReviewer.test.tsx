@@ -121,4 +121,22 @@ describe('FlashcardReviewer', () => {
 
     await waitFor(() => expect(screen.getByText(/đã ôn xong/i)).toBeInTheDocument())
   })
+
+  it('shows an error message with a "Thử lại" button on save failure, and retrying succeeds', async () => {
+    updateEq.mockResolvedValueOnce({ error: { message: 'network error' } })
+
+    render(<FlashcardReviewer cards={cards} />)
+    fireEvent.click(screen.getByRole('button', { name: /lật thẻ/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^đúng$/i }))
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/không lưu được/i))
+    const retryButton = screen.getByRole('button', { name: /thử lại/i })
+    expect(retryButton).toBeInTheDocument()
+
+    updateEq.mockResolvedValueOnce({ error: null })
+    fireEvent.click(retryButton)
+
+    await waitFor(() => expect(screen.getByText('謝謝')).toBeInTheDocument())
+    expect(updateEq).toHaveBeenCalledTimes(2)
+  })
 })

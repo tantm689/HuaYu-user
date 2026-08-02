@@ -24,6 +24,7 @@ export default function FlashcardReviewer({ cards, onCardReviewed }: FlashcardRe
   const [showStrokeOrder, setShowStrokeOrder] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [lastAttempt, setLastAttempt] = useState<boolean | null>(null)
 
   if (index >= cards.length) {
     return (
@@ -41,11 +42,13 @@ export default function FlashcardReviewer({ cards, onCardReviewed }: FlashcardRe
     setFlipped(false)
     setShowStrokeOrder(false)
     setSaveError(null)
+    setLastAttempt(null)
     setIndex((i) => i + 1)
     onCardReviewed?.(vocabularyId)
   }
 
   async function handleAnswer(correct: boolean) {
+    setLastAttempt(correct)
     setSaving(true)
     setSaveError(null)
     const next = computeNextReview({ box: progress.box, learning_streak: progress.learning_streak }, correct)
@@ -112,26 +115,41 @@ export default function FlashcardReviewer({ cards, onCardReviewed }: FlashcardRe
               </div>
             )}
 
-            {saveError && <p className="text-sm font-semibold text-error-text">{saveError}</p>}
+            {saveError && (
+              <p role="alert" className="text-sm font-semibold text-error-text">
+                {saveError}
+              </p>
+            )}
 
-            <div className="flex gap-3">
+            {saveError ? (
               <button
                 type="button"
                 disabled={saving}
-                onClick={() => handleAnswer(false)}
+                onClick={() => handleAnswer(lastAttempt!)}
                 className="rounded-btn border border-error-border bg-error-bg px-6 py-2.5 font-semibold text-error-text shadow-sm transition-colors hover:bg-red-100 disabled:opacity-50"
               >
-                Sai
+                Thử lại
               </button>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => handleAnswer(true)}
-                className="rounded-btn border border-success-border bg-success-bg px-6 py-2.5 font-semibold text-success-text shadow-sm transition-colors hover:bg-green-100 disabled:opacity-50"
-              >
-                Đúng
-              </button>
-            </div>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => handleAnswer(false)}
+                  className="rounded-btn border border-error-border bg-error-bg px-6 py-2.5 font-semibold text-error-text shadow-sm transition-colors hover:bg-red-100 disabled:opacity-50"
+                >
+                  Sai
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => handleAnswer(true)}
+                  className="rounded-btn border border-success-border bg-success-bg px-6 py-2.5 font-semibold text-success-text shadow-sm transition-colors hover:bg-green-100 disabled:opacity-50"
+                >
+                  Đúng
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
