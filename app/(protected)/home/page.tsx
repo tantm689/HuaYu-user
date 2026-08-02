@@ -1,14 +1,34 @@
 import Link from 'next/link'
-import { BookMarked, ChevronRight, Library } from 'lucide-react'
+import { BookMarked, ChevronRight, Library, Sparkles } from 'lucide-react'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { getPublishedBooks } from '@/lib/db/getPublishedBooks'
+import { getDueVocabularyCards } from '@/lib/db/getDueVocabularyCards'
 
 export default async function HomePage() {
   const supabase = await createServerSupabase()
-  const books = await getPublishedBooks(supabase)
+  const [books, dueCards] = await Promise.all([
+    getPublishedBooks(supabase),
+    getDueVocabularyCards(supabase),
+  ])
 
   return (
     <div className="mx-auto max-w-[660px] px-5 py-6">
+      {dueCards.length > 0 && (
+        <Link
+          href="/review"
+          className="group mb-5 flex items-center gap-4 rounded-card border border-brand-gold/40 bg-accent-bg px-6 py-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-red text-white">
+            <Sparkles className="h-6 w-6" strokeWidth={2} />
+          </span>
+          <span className="flex-1">
+            <span className="block font-han-title text-lg font-bold text-ink">Ôn hôm nay</span>
+            <span className="text-sm font-semibold text-ink-faint">{dueCards.length} từ vựng đến hạn ôn</span>
+          </span>
+          <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+        </Link>
+      )}
+
       <div className="mb-5 rounded-card border border-card-border bg-white p-6 shadow-sm">
         <span className="mb-3 inline-flex items-center gap-1.5 rounded-pill border border-red-100 bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-red">
           <Library className="h-3.5 w-3.5" strokeWidth={2.5} />
