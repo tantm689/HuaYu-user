@@ -9,7 +9,7 @@ export default function SentenceOrderQuestion({
   onAnswer,
 }: {
   payload: SentenceOrderPayload
-  onAnswer: (isCorrect: boolean) => void
+  onAnswer: (isCorrect: boolean, userAnswer?: number[]) => void
 }) {
   const [pickedIndices, setPickedIndices] = useState<number[]>([])
   const [checked, setChecked] = useState(false)
@@ -29,19 +29,29 @@ export default function SentenceOrderQuestion({
 
   function handleCheck() {
     setChecked(true)
-    onAnswer(gradeSentenceOrder(payload, pickedIndices))
+    onAnswer(gradeSentenceOrder(payload, pickedIndices), pickedIndices)
   }
+
+  const isCorrect = checked ? gradeSentenceOrder(payload, pickedIndices) : false
+  const containerAnimClass = checked
+    ? isCorrect
+      ? 'animate-bounce-pop border-success-border bg-success-bg'
+      : 'animate-shake-wrong border-error-border bg-error-bg'
+    : 'border-dashed border-card-border bg-accent-bg'
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex min-h-14 flex-wrap gap-2 rounded-btn border border-dashed border-card-border bg-accent-bg p-3">
+      <p className="text-center text-xs font-bold uppercase tracking-wide text-ink-faint">
+        Sắp xếp các từ sau thành câu đúng
+      </p>
+      <div className={`flex min-h-14 flex-wrap gap-2 rounded-btn border p-3 transition-all ${containerAnimClass}`}>
         {pickedIndices.map((wordIndex, position) => (
           <button
             key={position}
             type="button"
             disabled={checked}
             onClick={() => unpick(position)}
-            className="rounded-btn border border-brand-red bg-white px-4 py-2 font-han-title font-semibold text-ink disabled:cursor-not-allowed"
+            className="rounded-btn border border-brand-gold bg-amber-50/70 px-4 py-2 font-han-title font-semibold text-ink shadow-xs transition-colors hover:bg-amber-100 disabled:cursor-not-allowed"
           >
             {payload.words[wordIndex]}
           </button>
@@ -71,11 +81,9 @@ export default function SentenceOrderQuestion({
         </button>
       )}
 
-      {checked && (
-        <p className={`text-sm font-semibold ${gradeSentenceOrder(payload, pickedIndices) ? 'text-success-text' : 'text-error-text'}`}>
-          {gradeSentenceOrder(payload, pickedIndices)
-            ? 'Chính xác!'
-            : `Câu đúng: ${payload.correctOrder.map((i) => payload.words[i]).join(' ')}`}
+      {checked && !gradeSentenceOrder(payload, pickedIndices) && (
+        <p className="text-sm font-semibold text-error-text">
+          Câu đúng: {payload.correctOrder.map((i) => payload.words[i]).join(' ')}
         </p>
       )}
     </div>
