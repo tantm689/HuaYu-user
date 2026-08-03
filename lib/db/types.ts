@@ -28,6 +28,13 @@ export interface Vocabulary {
   audio_url: string | null
 }
 
+export interface DialogueLineForTyping {
+  id: string
+  text_zh: string
+  translation_vi: string | null
+  audio_url: string | null
+}
+
 export interface DialogueVocabulary {
   dialogue_id: string
   dialogue_order: number
