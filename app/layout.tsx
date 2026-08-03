@@ -19,7 +19,7 @@ const notoSansSC = Noto_Sans_SC({
 })
 
 export const metadata: Metadata = {
-  title: 'TaiwaneseEasy',
+  title: 'HuaYu',
   description: 'Ôn tập tiếng Trung phồn thể theo giáo trình Đương Đại',
 }
 

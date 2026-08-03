@@ -27,7 +27,7 @@ export default function GuidePage() {
           <BookOpenText className="h-3.5 w-3.5" strokeWidth={2.5} />
           Hướng dẫn học
         </span>
-        <h1 className="font-han-title text-2xl font-bold text-ink">Cách sử dụng TaiwaneseEasy</h1>
+        <h1 className="font-han-title text-2xl font-bold text-ink">Cách sử dụng HuaYu</h1>
         <p className="mt-2 text-sm font-medium text-ink-faint">Bấm vào từng mục bên dưới để xem chi tiết.</p>
       </div>
 

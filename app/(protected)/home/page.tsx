@@ -37,7 +37,7 @@ export default async function HomePage() {
       <div className="mb-5 rounded-card border border-card-border bg-white p-6 shadow-sm">
         <span className="mb-3 inline-flex items-center gap-1.5 rounded-pill border border-red-100 bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-red">
           <Library className="h-3.5 w-3.5" strokeWidth={2.5} />
-          TaiwaneseEasy
+          HuaYu
         </span>
         <h1 className="font-han-title text-2xl font-bold text-ink">Chọn quyển sách</h1>
       </div>

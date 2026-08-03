@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
+import Logo from '@/components/Logo'
 
 function LoginForm() {
   const searchParams = useSearchParams()
@@ -48,10 +49,8 @@ function LoginForm() {
   return (
     <div className="mx-auto flex min-h-screen max-w-[420px] flex-col justify-center gap-4 px-5 py-8">
       <div className="mb-2 flex flex-col items-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-red font-han-title text-2xl font-bold text-brand-cream-text shadow-[0_3px_10px_rgba(193,39,45,0.28)]">
-          易
-        </div>
-        <h1 className="text-xl font-extrabold text-ink">Đăng nhập TaiwaneseEasy</h1>
+        <Logo />
+        <h1 className="text-xl font-extrabold text-ink">Đăng nhập HuaYu</h1>
       </div>
 
       <button
