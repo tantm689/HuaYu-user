@@ -9,7 +9,7 @@ export function gradeSentenceOrder(payload: SentenceOrderPayload, selectedOrder:
   return selectedOrder.every((index, i) => index === payload.correctOrder[i])
 }
 
-export function gradeMatching(pairCount: number, wrongAttemptsCount: number): boolean {
+export function gradeMatching(_pairCount: number, wrongAttemptsCount: number): boolean {
   return wrongAttemptsCount === 0
 }
 

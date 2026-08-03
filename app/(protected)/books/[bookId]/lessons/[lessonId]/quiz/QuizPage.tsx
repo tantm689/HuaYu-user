@@ -1,9 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Check, X } from 'lucide-react'
 import type {
   QuizQuestion,
   PinyinChoicePayload,
+  ListeningChoicePayload,
   ToneChoicePayload,
   FillBlankPayload,
   SentenceOrderPayload,
@@ -12,7 +15,17 @@ import { recordQuizAttempt } from '@/lib/db/quiz'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import QuizPlayer, { type QuestionResult } from './QuizPlayer'
 
-type Stage = { mode: 'select' } | { mode: 'playing'; part: 1 | 2 } | { mode: 'result'; part: 1 | 2; results: QuestionResult[] }
+type ViewState = { mode: 'select' } | { mode: 'playing'; part: 1 | 2 }
+
+function parseView(searchParams: URLSearchParams): ViewState {
+  const part = searchParams.get('part')
+  if (part === '1' || part === '2') {
+    return { mode: 'playing', part: part === '1' ? 1 : 2 }
+  }
+  return { mode: 'select' }
+}
+
+type ResultState = { part: 1 | 2; results: QuestionResult[] } | null
 
 const PART_META = {
   1: { title: 'Phần 1', description: 'Nhận biết từ vựng & phát âm' },
@@ -30,12 +43,27 @@ export default function QuizPage({
   part2Questions: QuizQuestion[]
   bestScores: { part1: number | null; part2: number | null }
 }) {
-  const [stage, setStage] = useState<Stage>({ mode: 'select' })
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const view = parseView(searchParams)
+
+  const [result, setResult] = useState<ResultState>(null)
   const [scores, setScores] = useState(bestScores)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const questionsByPart = { 1: part1Questions, 2: part2Questions } as const
+
+  function goToPart(part: 1 | 2) {
+    setResult(null)
+    router.push(`${pathname}?part=${part}`)
+  }
+
+  function goToSelect() {
+    setResult(null)
+    router.push(pathname)
+  }
 
   async function submitAttempt(part: 1 | 2, results: QuestionResult[]) {
     const score = results.filter((r) => r.isCorrect).length
@@ -57,7 +85,7 @@ export default function QuizPage({
     }
   }
 
-  if (stage.mode === 'select') {
+  if (view.mode === 'select') {
     return (
       <div className="flex flex-col gap-3">
         {([1, 2] as const).map((part) => {
@@ -71,7 +99,7 @@ export default function QuizPage({
               )}
               <button
                 type="button"
-                onClick={() => setStage({ mode: 'playing', part })}
+                onClick={() => goToPart(part)}
                 className="mt-3 rounded-btn bg-brand-red px-5 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
               >
                 {bestScore !== null ? 'Làm lại' : 'Bắt đầu'}
@@ -83,20 +111,22 @@ export default function QuizPage({
     )
   }
 
-  if (stage.mode === 'playing') {
+  const part = view.part
+
+  if (!result || result.part !== part) {
     return (
       <QuizPlayer
-        questions={questionsByPart[stage.part]}
+        questions={questionsByPart[part]}
         onPartComplete={(results) => {
-          setStage({ mode: 'result', part: stage.part, results })
-          submitAttempt(stage.part, results)
+          setResult({ part, results })
+          submitAttempt(part, results)
         }}
       />
     )
   }
 
-  const score = stage.results.filter((r) => r.isCorrect).length
-  const total = stage.results.length
+  const score = result.results.filter((r) => r.isCorrect).length
+  const total = result.results.length
 
   return (
     <div className="flex flex-col gap-5">
@@ -104,7 +134,8 @@ export default function QuizPage({
         <p className="font-han-title text-3xl font-bold text-ink">
           {score}/{total}
         </p>
-        <p className="mt-1 text-sm font-medium text-ink-faint">{PART_META[stage.part].title} hoàn thành</p>
+        <p className="mt-1 text-sm font-medium text-ink-faint">{PART_META[part].title} hoàn thành</p>
+        {saving && <p className="mt-1 text-xs font-medium text-ink-faint">Đang lưu kết quả...</p>}
       </div>
 
       {saveError && (
@@ -113,7 +144,7 @@ export default function QuizPage({
           <button
             type="button"
             disabled={saving}
-            onClick={() => submitAttempt(stage.part, stage.results)}
+            onClick={() => submitAttempt(part, result.results)}
             className="rounded-btn border border-error-border bg-white px-4 py-1.5 text-sm font-semibold text-error-text transition-colors hover:bg-red-100 disabled:opacity-50"
           >
             Thử lại
@@ -122,19 +153,28 @@ export default function QuizPage({
       )}
 
       <div className="flex flex-col gap-2">
-        {stage.results.map((result, i) => {
-          const question = questionsByPart[stage.part][i]
+        {result.results.map((r, i) => {
+          const question = questionsByPart[part][i]
+          const correctAnswer = !r.isCorrect ? correctAnswerSummary(question) : ''
           return (
             <div
-              key={result.questionId}
+              key={r.questionId}
               className={`rounded-card-sm border px-4 py-3 ${
-                result.isCorrect ? 'border-success-border bg-success-bg' : 'border-error-border bg-error-bg'
+                r.isCorrect ? 'border-success-border bg-success-bg' : 'border-error-border bg-error-bg'
               }`}
             >
-              <p className={`text-sm font-semibold ${result.isCorrect ? 'text-success-text' : 'text-error-text'}`}>
-                Câu {i + 1}: {result.isCorrect ? 'Đúng' : 'Sai'}
+              <p
+                className={`flex items-center gap-1.5 text-sm font-semibold ${
+                  r.isCorrect ? 'text-success-text' : 'text-error-text'
+                }`}
+              >
+                {r.isCorrect ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                Câu {i + 1}: {r.isCorrect ? 'Đúng' : 'Sai'}
               </p>
               <p className="mt-0.5 text-xs font-medium text-ink-faint">{questionSummary(question)}</p>
+              {correctAnswer && (
+                <p className="mt-0.5 text-xs font-medium text-ink-faint">Đáp án đúng: {correctAnswer}</p>
+              )}
             </div>
           )
         })}
@@ -143,15 +183,16 @@ export default function QuizPage({
       <div className="flex gap-3">
         <button
           type="button"
-          onClick={() => setStage({ mode: 'playing', part: stage.part })}
+          onClick={() => goToPart(part)}
           className="rounded-btn border border-card-border bg-white px-5 py-2.5 font-semibold text-ink shadow-sm transition-colors hover:bg-accent-bg"
         >
           Làm lại
         </button>
         <button
           type="button"
-          onClick={() => setStage({ mode: 'select' })}
-          className="rounded-btn bg-brand-red px-5 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
+          disabled={saving}
+          onClick={goToSelect}
+          className="rounded-btn bg-brand-red px-5 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark disabled:opacity-50"
         >
           Về danh sách Phần
         </button>
@@ -174,5 +215,36 @@ function questionSummary(question: QuizQuestion): string {
       return 'Ghép nghĩa/nối từ'
     case 'sentence_order':
       return (question.payload as SentenceOrderPayload).words.join(' / ')
+    default:
+      return ''
+  }
+}
+
+function correctAnswerSummary(question: QuizQuestion): string {
+  switch (question.type) {
+    case 'pinyin_choice': {
+      const payload = question.payload as PinyinChoicePayload
+      return payload.choices[payload.correctIndex]
+    }
+    case 'listening_choice': {
+      const payload = question.payload as ListeningChoicePayload
+      return payload.choices[payload.correctIndex]
+    }
+    case 'tone_choice': {
+      const payload = question.payload as ToneChoicePayload
+      return payload.choices[payload.correctIndex]
+    }
+    case 'fill_blank': {
+      const payload = question.payload as FillBlankPayload
+      return payload.choices[payload.correctIndex]
+    }
+    case 'sentence_order': {
+      const payload = question.payload as SentenceOrderPayload
+      return payload.correctOrder.map((i) => payload.words[i]).join(' ')
+    }
+    case 'matching':
+      return ''
+    default:
+      return ''
   }
 }
