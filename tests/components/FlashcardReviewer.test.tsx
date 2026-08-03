@@ -350,6 +350,42 @@ describe('FlashcardReviewer', () => {
     expect(screen.getByText('你好')).toBeInTheDocument()
   })
 
+  it('shows the full word_zh (with parenthetical notation) on the card but only draws stroke order for the characters outside the parentheses', async () => {
+    const cardWithNotation = [
+      {
+        vocabulary: {
+          id: 'v4',
+          dialogue_id: 'd1',
+          order: 1,
+          word_zh: '臺灣 (=台湾)',
+          pinyin: 'Tái wān',
+          meaning_vi: 'Đài Loan',
+          audio_url: null,
+        },
+        progress: {
+          id: 'p4',
+          user_id: 'u1',
+          vocabulary_id: 'v4',
+          box: 0,
+          learning_streak: 0,
+          due_at: '2026-08-02T00:00:00Z',
+          last_reviewed_at: null,
+          created_at: '2026-08-02T00:00:00Z',
+        },
+      },
+    ]
+
+    render(<FlashcardReviewer cards={cardWithNotation} />)
+    expect(screen.getByText('臺灣 (=台湾)')).toBeInTheDocument()
+
+    flipCard()
+    await waitFor(() => {
+      const strokeOrderNodes = screen.getAllByTestId('stroke-order')
+      expect(strokeOrderNodes).toHaveLength(2)
+      expect(strokeOrderNodes.map((n) => n.textContent)).toEqual(['臺', '灣'])
+    })
+  })
+
   it('remounts HanziStrokeOrder for the next card even when a character shares the same position as the previous card (keyed by vocabulary id, not char+index)', async () => {
     const sameFirstCharCards = [
       cards[0], // 你好 -> chars: 你, 好

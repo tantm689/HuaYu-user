@@ -355,7 +355,16 @@ export default function FlashcardReviewer({ cards: initialCards, onCardReviewed,
   }
 
   const { vocabulary, progress } = roundCards[0]
-  const characters = [...vocabulary.word_zh]
+  // word_zh đôi khi chứa chú thích viết khác đi kèm trong ngoặc (ví dụ
+  // "臺灣 (=台湾)") - animation viết chữ chỉ nên vẽ chữ Hán chính, không vẽ
+  // cả phần chú thích (kể cả chữ Hán bên trong ngoặc, như "台湾" ở ví dụ
+  // trên). Bỏ mọi nội dung trong ngoặc (thường/full-width) trước, rồi mới
+  // lọc còn lại chỉ giữ ký tự thuộc khối Unicode CJK để tách thành từng
+  // ký tự cho HanziStrokeOrder. Chữ hiển thị to ở mặt trước thẻ vẫn dùng
+  // nguyên vocabulary.word_zh, không qua bộ lọc này.
+  const characters = [...vocabulary.word_zh.replace(/[（(][^）)]*[）)]/g, '')].filter((char) =>
+    /[一-鿿㐀-䶿]/.test(char)
+  )
 
   function goToNext(vocabularyId: string, correct: boolean, updatedCard: FlashcardCard, entry: HistoryEntry) {
     const remaining = roundCards.slice(1)
