@@ -9,7 +9,7 @@ const modes = [
   { key: 'vocabulary', label: 'Từ vựng', description: 'Flashcard và cách viết chữ', icon: SpellCheck, enabled: true },
   { key: 'dialogue', label: 'Hội thoại', description: 'Ôn lại và luyện nghe nói', icon: BookText, enabled: false },
   { key: 'grammar', label: 'Ngữ pháp', description: 'Xem lại cấu trúc ngữ pháp', icon: LayoutList, enabled: false },
-  { key: 'typing', label: 'Gõ câu', description: 'Luyện gõ lại câu hội thoại', icon: Keyboard, enabled: false },
+  { key: 'typing', label: 'Gõ phản xạ', description: 'Luyện gõ từ và câu', icon: Keyboard, enabled: true },
   { key: 'quiz', label: 'Quiz', description: 'Kiểm tra lại kiến thức', icon: PenSquare, enabled: true },
 ] as const
 
