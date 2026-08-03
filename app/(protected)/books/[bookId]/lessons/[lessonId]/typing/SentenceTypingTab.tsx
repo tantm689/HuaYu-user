@@ -14,6 +14,8 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
   const [streaks, setStreaks] = useState<Record<string, number>>({})
   const [saveError, setSaveError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [correctCount, setCorrectCount] = useState(0)
+  const [wrongCount, setWrongCount] = useState(0)
 
   if (lines.length === 0) {
     return (
@@ -26,11 +28,36 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
   }
 
   if (done) {
+    const total = correctCount + wrongCount
+    const percent = total > 0 ? Math.round((correctCount / total) * 100) : 0
+    const circumference = 2 * Math.PI * 54
+
     return (
-      <div className="rounded-card border border-card-border bg-white p-8 text-center shadow-sm">
-        <p className="font-han-title text-lg font-bold text-ink">
-          Đã luyện xong {lines.length} câu
-        </p>
+      <div className="mx-auto w-full max-w-lg rounded-card border border-card-border bg-white p-10 text-center shadow-sm">
+        <p className="font-han-title text-2xl font-bold text-ink">Đã luyện xong {total} câu</p>
+
+        <div className="relative mx-auto my-8 h-44 w-44">
+          <svg viewBox="0 0 120 120" className="h-44 w-44 -rotate-90">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="#EFE4CE" strokeWidth="12" />
+            <circle
+              cx="60"
+              cy="60"
+              r="54"
+              fill="none"
+              stroke="#7FBF8C"
+              strokeWidth="12"
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference - (percent / 100) * circumference}
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="font-han-title text-4xl font-bold text-ink">{percent}%</span>
+            <span className="mt-0.5 text-sm font-semibold text-ink-faint">
+              {correctCount}/{total} câu đúng
+            </span>
+          </span>
+        </div>
       </div>
     )
   }
@@ -42,6 +69,11 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
     const isCorrect = isExactMatch(value, line.text_zh)
     setGraded(isCorrect ? 'correct' : 'incorrect')
     setSaveError(null)
+    if (isCorrect) {
+      setCorrectCount((c) => c + 1)
+    } else {
+      setWrongCount((c) => c + 1)
+    }
 
     const prevStreak = streaks[line.id] ?? 0
     try {
@@ -65,9 +97,9 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
 
   const stateClasses =
     graded === 'correct'
-      ? 'border-success-border bg-success-bg'
+      ? 'animate-bounce-pop border-success-border bg-success-bg shadow-md'
       : graded === 'incorrect'
-        ? 'border-error-border bg-error-bg'
+        ? 'animate-shake-wrong border-error-border bg-error-bg shadow-md'
         : 'border-card-border bg-white'
 
   return (
@@ -103,7 +135,13 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
           onKeyDown={(e) => {
             if (e.key === 'Enter' && graded === null) grade()
           }}
-          className="w-full rounded-btn border border-card-border bg-white px-3 py-2 font-han-title text-lg text-ink focus:border-brand-red focus:outline-none"
+          className={`w-full rounded-btn border px-3 py-2 font-han-title text-lg text-ink transition-colors focus:border-brand-red focus:outline-none ${
+            graded === 'correct'
+              ? 'border-success-border bg-success-bg font-semibold text-success-text'
+              : graded === 'incorrect'
+                ? 'border-error-border bg-error-bg font-semibold text-error-text'
+                : 'border-card-border bg-white'
+          }`}
         />
 
         {graded === 'incorrect' && (
@@ -120,7 +158,7 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
         <button
           type="button"
           onClick={grade}
-          className="self-start rounded-btn bg-brand-red px-6 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
+          className="mx-auto rounded-btn bg-brand-red px-8 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
         >
           Kiểm tra
         </button>
@@ -128,7 +166,7 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
         <button
           type="button"
           onClick={next}
-          className="self-start rounded-btn bg-brand-red px-6 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
+          className="mx-auto rounded-btn bg-brand-red px-8 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
         >
           Tiếp
         </button>

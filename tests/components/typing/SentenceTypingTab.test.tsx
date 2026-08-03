@@ -76,6 +76,24 @@ describe('SentenceTypingTab', () => {
     expect(screen.getByText(/đã luyện xong 1 câu/i)).toBeInTheDocument()
   })
 
+  it('shows the correct/wrong tally and percent on the completion screen', () => {
+    render(<SentenceTypingTab lines={lines} />)
+
+    // First line: submit empty (counts as wrong)
+    fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^tiếp$/i }))
+
+    // Second line: submit correct
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: '我很好' } })
+    fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^tiếp$/i }))
+
+    expect(screen.getByText('Đã luyện xong 2 câu')).toBeInTheDocument()
+    expect(screen.getByText('1/2 câu đúng')).toBeInTheDocument()
+    expect(screen.getByText('50%')).toBeInTheDocument()
+  })
+
   it('does not crash and shows an empty-state message when lines is empty', () => {
     expect(() => render(<SentenceTypingTab lines={[]} />)).not.toThrow()
     expect(screen.getByText(/bài học này chưa có câu hội thoại để luyện gõ/i)).toBeInTheDocument()
