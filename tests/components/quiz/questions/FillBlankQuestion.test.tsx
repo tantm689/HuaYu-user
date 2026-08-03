@@ -3,11 +3,17 @@ import '@testing-library/jest-dom'
 import { describe, it, expect, vi } from 'vitest'
 import FillBlankQuestion from '@/app/(protected)/books/[bookId]/lessons/[lessonId]/quiz/questions/FillBlankQuestion'
 
-const payload = { sentence: '我 ___ 學校。', choices: ['去', '很', '在', '和'], correctIndex: 0 }
+const payload = {
+  contextSentence: '你今天要做什麼？',
+  sentence: '我 ___ 學校。',
+  choices: ['去', '很', '在', '和'],
+  correctIndex: 0,
+}
 
 describe('FillBlankQuestion', () => {
-  it('renders the sentence and all 4 choices', () => {
+  it('renders the context sentence, the blanked sentence, and all 4 choices', () => {
     render(<FillBlankQuestion payload={payload} onAnswer={vi.fn()} />)
+    expect(screen.getByText('你今天要做什麼？')).toBeInTheDocument()
     expect(screen.getByText('我 ___ 學校。')).toBeInTheDocument()
     payload.choices.forEach((choice) => {
       expect(screen.getByText(choice)).toBeInTheDocument()

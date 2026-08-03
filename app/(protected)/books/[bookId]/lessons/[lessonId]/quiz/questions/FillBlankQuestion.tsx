@@ -21,7 +21,10 @@ export default function FillBlankQuestion({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-center font-han-title text-2xl font-bold text-ink">{payload.sentence}</p>
+      <div className="text-center">
+        <p className="font-han-title text-lg font-medium text-ink-faint">{payload.contextSentence}</p>
+        <p className="mt-1 font-han-title text-2xl font-bold text-ink">{payload.sentence}</p>
+      </div>
       <div className="flex flex-col gap-2.5">
         {payload.choices.map((choice, index) => {
           const isSelected = selectedIndex === index

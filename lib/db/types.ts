@@ -99,6 +99,7 @@ export interface MatchingPayload {
 }
 
 export interface FillBlankPayload {
+  contextSentence: string
   sentence: string
   choices: string[]
   correctIndex: number
