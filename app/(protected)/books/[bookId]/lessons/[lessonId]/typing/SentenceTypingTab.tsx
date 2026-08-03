@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, Volume2, X } from 'lucide-react'
 import type { DialogueLineForTyping } from '@/lib/db/types'
 import { isExactMatch } from '@/lib/typing/normalize'
@@ -24,6 +24,36 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
   const [streaks, setStreaks] = useState<Record<string, number>>({})
   const [saveError, setSaveError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Preload the current line's audio ahead of time so the first press of
+  // the hint button doesn't pay the network-fetch delay - swapping .src on
+  // one reused element also means a fast repeat press can't stack multiple
+  // overlapping playbacks the way `new Audio(url).play()` per click would.
+  const currentAudioUrl = shuffledLines[index]?.audio_url ?? null
+  useEffect(() => {
+    if (!currentAudioUrl) return
+    const audio = new Audio(currentAudioUrl)
+    audio.preload = 'auto'
+    audio.addEventListener('ended', () => setIsPlayingAudio(false))
+    audio.addEventListener('pause', () => setIsPlayingAudio(false))
+    audioRef.current = audio
+    setIsPlayingAudio(false)
+
+    return () => {
+      audio.pause()
+      audioRef.current = null
+    }
+  }, [currentAudioUrl])
+
+  function playAudio() {
+    const audio = audioRef.current
+    if (!audio || isPlayingAudio) return
+    setIsPlayingAudio(true)
+    audio.currentTime = 0
+    audio.play().catch(() => setIsPlayingAudio(false))
+  }
 
   if (lines.length === 0) {
     return (
@@ -117,9 +147,10 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
           {line.audio_url && (
             <button
               type="button"
-              onClick={() => new Audio(line.audio_url!).play()}
+              onClick={playAudio}
+              disabled={isPlayingAudio}
               aria-label="Phát âm thanh"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-red text-white shadow-sm transition-transform hover:scale-105 hover:bg-brand-red-dark active:scale-95"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-red text-white shadow-sm transition-transform hover:scale-105 hover:bg-brand-red-dark active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             >
               <Volume2 className="h-5 w-5" strokeWidth={2} />
             </button>

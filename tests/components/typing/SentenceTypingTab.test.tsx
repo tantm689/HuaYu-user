@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import SentenceTypingTab from '@/app/(protected)/books/[bookId]/lessons/[lessonId]/typing/SentenceTypingTab'
 
@@ -9,11 +9,29 @@ vi.mock('@/lib/supabase/browser', () => ({
   createBrowserSupabase: () => ({ from: vi.fn().mockReturnValue({ upsert }) }),
 }))
 
-const playMock = vi.fn()
-vi.stubGlobal(
-  'Audio',
-  vi.fn().mockImplementation(() => ({ play: playMock }))
-)
+const playMock = vi.fn().mockResolvedValue(undefined)
+const audioConstructorMock = vi.fn()
+const audioListeners: Record<string, (() => void)[]> = {}
+
+class MockAudio {
+  currentTime = 0
+  constructor(src: string) {
+    audioConstructorMock(src)
+  }
+  play = playMock
+  pause = vi.fn()
+  addEventListener(event: string, handler: () => void) {
+    audioListeners[event] = audioListeners[event] ?? []
+    audioListeners[event].push(handler)
+  }
+  removeEventListener() {}
+}
+
+vi.stubGlobal('Audio', MockAudio)
+
+function fireAudioEvent(event: string) {
+  ;(audioListeners[event] ?? []).forEach((handler) => handler())
+}
 
 const lines = [
   { id: 'l1', text_zh: '你好嗎', translation_vi: 'bạn khỏe không', audio_url: 'a1.mp3' },
@@ -23,6 +41,8 @@ const lines = [
 beforeEach(() => {
   upsert.mockClear()
   playMock.mockClear()
+  audioConstructorMock.mockClear()
+  Object.keys(audioListeners).forEach((key) => delete audioListeners[key])
   // Math.random() just under 1 keeps a 2-item Fisher-Yates shuffle a no-op
   // (floor(0.999 * 2) = 1 = its own index), so tests can rely on `lines`'
   // original order unless a test explicitly wants shuffling.
@@ -45,9 +65,38 @@ describe('SentenceTypingTab', () => {
     expect(screen.getByRole('button', { name: /phát âm thanh/i })).toBeInTheDocument()
   })
 
-  it('hides the audio button when audio_url is null and plays audio when present', () => {
+  it('hides the audio button when audio_url is null', () => {
     render(<SentenceTypingTab lines={[lines[1], lines[0]]} />)
     expect(screen.queryByRole('button', { name: /phát âm thanh/i })).not.toBeInTheDocument()
+  })
+
+  it('preloads the audio element on mount instead of waiting for the first click', () => {
+    render(<SentenceTypingTab lines={lines} />)
+    expect(audioConstructorMock).toHaveBeenCalledWith('a1.mp3')
+    expect(audioConstructorMock).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /phát âm thanh/i }))
+    // Playing reuses the already-constructed element - no second `new Audio()`.
+    expect(audioConstructorMock).toHaveBeenCalledTimes(1)
+    expect(playMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables the hint button while audio is playing and re-enables it once playback ends', () => {
+    render(<SentenceTypingTab lines={lines} />)
+    const button = screen.getByRole('button', { name: /phát âm thanh/i })
+
+    fireEvent.click(button)
+    expect(button).toBeDisabled()
+
+    // A rapid repeat click while still "playing" must not trigger another play() call.
+    fireEvent.click(button)
+    expect(playMock).toHaveBeenCalledTimes(1)
+
+    act(() => fireAudioEvent('ended'))
+    expect(button).not.toBeDisabled()
+
+    fireEvent.click(button)
+    expect(playMock).toHaveBeenCalledTimes(2)
   })
 
   it('locks the input and shows the correct answer after an incorrect submission, advances on Tiếp theo', async () => {
