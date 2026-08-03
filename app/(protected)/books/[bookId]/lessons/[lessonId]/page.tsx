@@ -10,7 +10,7 @@ const modes = [
   { key: 'dialogue', label: 'Hội thoại', description: 'Ôn lại và luyện nghe nói', icon: BookText, enabled: false },
   { key: 'grammar', label: 'Ngữ pháp', description: 'Xem lại cấu trúc ngữ pháp', icon: LayoutList, enabled: false },
   { key: 'typing', label: 'Gõ câu', description: 'Luyện gõ lại câu hội thoại', icon: Keyboard, enabled: false },
-  { key: 'quiz', label: 'Quiz', description: 'Kiểm tra lại kiến thức', icon: PenSquare, enabled: false },
+  { key: 'quiz', label: 'Quiz', description: 'Kiểm tra lại kiến thức', icon: PenSquare, enabled: true },
 ] as const
 
 export default async function LessonPage({
