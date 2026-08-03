@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Check, X } from 'lucide-react'
 import type {
   QuizQuestion,
   PinyinChoicePayload,
@@ -20,6 +21,7 @@ import SentenceOrderQuestion from './questions/SentenceOrderQuestion'
 export interface QuestionResult {
   questionId: string
   isCorrect: boolean
+  userAnswer?: any
 }
 
 export default function QuizPlayer({
@@ -31,17 +33,21 @@ export default function QuizPlayer({
 }) {
   const [index, setIndex] = useState(0)
   const [results, setResults] = useState<QuestionResult[]>([])
-  const [pendingResult, setPendingResult] = useState<boolean | null>(null)
+  const [pendingResult, setPendingResult] = useState<{ isCorrect: boolean; userAnswer?: any } | null>(null)
 
   const question = questions[index]
   const isLast = index === questions.length - 1
 
-  function handleAnswer(isCorrect: boolean) {
-    setPendingResult(isCorrect)
+  function handleAnswer(isCorrect: boolean, userAnswer?: any) {
+    setPendingResult({ isCorrect, userAnswer })
   }
 
   function handleNext() {
-    const nextResults = [...results, { questionId: question.id, isCorrect: pendingResult! }]
+    if (!pendingResult) return
+    const nextResults = [
+      ...results,
+      { questionId: question.id, isCorrect: pendingResult.isCorrect, userAnswer: pendingResult.userAnswer },
+    ]
     setResults(nextResults)
     setPendingResult(null)
 
@@ -88,13 +94,36 @@ export default function QuizPlayer({
       </div>
 
       {pendingResult !== null && (
-        <button
-          type="button"
-          onClick={handleNext}
-          className="self-end rounded-btn bg-brand-red px-6 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
-        >
-          {isLast ? 'Hoàn thành' : 'Tiếp'}
-        </button>
+        <div className="animate-slide-up-fade flex items-center justify-between gap-3 rounded-card-sm border border-card-border bg-white p-4 shadow-md">
+          <div className="flex items-center gap-2">
+            {pendingResult.isCorrect ? (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success-bg text-success-text animate-check-pop">
+                <Check className="h-5 w-5" strokeWidth={3} />
+              </span>
+            ) : (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-error-bg text-error-text animate-check-pop">
+                <X className="h-5 w-5" strokeWidth={3} />
+              </span>
+            )}
+            <div>
+              <p
+                className={`text-sm font-bold ${
+                  pendingResult.isCorrect ? 'text-success-text' : 'text-error-text'
+                }`}
+              >
+                {pendingResult.isCorrect ? 'Chính xác! 🎉' : 'Chưa chính xác'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleNext}
+            className="rounded-btn bg-brand-red px-6 py-2.5 font-semibold text-white shadow-sm transition-all hover:bg-brand-red-dark active:scale-95"
+          >
+            {isLast ? 'Hoàn thành' : 'Tiếp'}
+          </button>
+        </div>
       )}
     </div>
   )

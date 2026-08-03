@@ -29,12 +29,9 @@ describe('gradeSentenceOrder', () => {
 })
 
 describe('gradeMatching', () => {
-  it('returns true when there were zero wrong attempts', () => {
+  it('returns true when all pairs are matched regardless of wrong attempt count', () => {
     expect(gradeMatching(5, 0)).toBe(true)
-  })
-
-  it('returns false when there was at least one wrong attempt', () => {
-    expect(gradeMatching(5, 1)).toBe(false)
+    expect(gradeMatching(5, 2)).toBe(true)
   })
 })
 

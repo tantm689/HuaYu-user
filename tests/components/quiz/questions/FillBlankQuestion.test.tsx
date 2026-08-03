@@ -20,18 +20,18 @@ describe('FillBlankQuestion', () => {
     })
   })
 
-  it('calls onAnswer(true) for the correct choice', () => {
+  it('calls onAnswer(true, 0) for the correct choice', () => {
     const onAnswer = vi.fn()
     render(<FillBlankQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('去'))
-    expect(onAnswer).toHaveBeenCalledWith(true)
+    expect(onAnswer).toHaveBeenCalledWith(true, 0)
   })
 
-  it('calls onAnswer(false) for a wrong choice', () => {
+  it('calls onAnswer(false, 1) for a wrong choice', () => {
     const onAnswer = vi.fn()
     render(<FillBlankQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('很'))
-    expect(onAnswer).toHaveBeenCalledWith(false)
+    expect(onAnswer).toHaveBeenCalledWith(false, 1)
   })
 
   it('locks choices after answering', () => {

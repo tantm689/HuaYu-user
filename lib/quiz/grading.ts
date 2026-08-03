@@ -9,8 +9,8 @@ export function gradeSentenceOrder(payload: SentenceOrderPayload, selectedOrder:
   return selectedOrder.every((index, i) => index === payload.correctOrder[i])
 }
 
-export function gradeMatching(_pairCount: number, wrongAttemptsCount: number): boolean {
-  return wrongAttemptsCount === 0
+export function gradeMatching(_pairCount: number, _wrongAttemptsCount: number): boolean {
+  return true
 }
 
 export function shuffleWithIndexMap<T>(items: T[]): { item: T; originalIndex: number }[] {

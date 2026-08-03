@@ -23,7 +23,7 @@ export default async function LessonQuizPage({
   ])
 
   return (
-    <div className="mx-auto max-w-[660px] px-5 py-6">
+    <div className="mx-auto max-w-[800px] px-5 py-6">
       <BackButton fallbackHref={`/books/${bookId}/lessons/${lessonId}`} />
 
       <div className="mb-5 rounded-card border border-card-border bg-white p-6 shadow-sm">

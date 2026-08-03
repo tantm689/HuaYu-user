@@ -14,18 +14,18 @@ describe('ToneChoiceQuestion', () => {
     })
   })
 
-  it('calls onAnswer(true) for the correct tone choice', () => {
+  it('calls onAnswer(true, 0) for the correct tone choice', () => {
     const onAnswer = vi.fn()
     render(<ToneChoiceQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('qì chē'))
-    expect(onAnswer).toHaveBeenCalledWith(true)
+    expect(onAnswer).toHaveBeenCalledWith(true, 0)
   })
 
-  it('calls onAnswer(false) for a wrong tone choice', () => {
+  it('calls onAnswer(false, 1) for a wrong tone choice', () => {
     const onAnswer = vi.fn()
     render(<ToneChoiceQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('qí chē'))
-    expect(onAnswer).toHaveBeenCalledWith(false)
+    expect(onAnswer).toHaveBeenCalledWith(false, 1)
   })
 
   it('locks choices after answering', () => {

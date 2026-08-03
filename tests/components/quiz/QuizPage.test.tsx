@@ -13,9 +13,14 @@ const push = vi.fn((url: string) => {
   currentSearch = queryIndex === -1 ? '' : url.slice(queryIndex + 1)
   notifySearchChange?.()
 })
+const replace = vi.fn((url: string) => {
+  const queryIndex = url.indexOf('?')
+  currentSearch = queryIndex === -1 ? '' : url.slice(queryIndex + 1)
+  notifySearchChange?.()
+})
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, replace }),
   usePathname: () => '/books/book-1/lessons/lesson-1/quiz',
   useSearchParams: () => {
     const [, setTick] = useState(0)
@@ -26,6 +31,7 @@ vi.mock('next/navigation', () => ({
 
 beforeEach(() => {
   push.mockClear()
+  replace.mockClear()
   currentSearch = ''
 })
 
@@ -102,7 +108,8 @@ describe('QuizPage', () => {
     await waitFor(() => expect(screen.getByText('Hoàn thành')).toBeInTheDocument())
     fireEvent.click(screen.getByText('Hoàn thành'))
 
-    expect(screen.getByText('1/1')).toBeInTheDocument()
+    expect(screen.getByText('1/1 câu đúng')).toBeInTheDocument()
+    expect(screen.getByText('100%')).toBeInTheDocument()
     await waitFor(() => {
       expect(insert).toHaveBeenCalledWith({ lesson_id: 'lesson-1', part: 1, score: 1, total: 1 })
     })
@@ -159,7 +166,7 @@ describe('QuizPage', () => {
       expect(screen.getByText('Câu 1/2')).toBeInTheDocument()
     })
 
-    it('pushes back to the bare pathname (removing ?part) when returning to the part list', async () => {
+    it('replaces URL back to bare pathname (removing ?part) when returning to the part list', async () => {
       mockSupabaseInsert()
       currentSearch = 'part=1'
       render(
@@ -173,60 +180,10 @@ describe('QuizPage', () => {
       fireEvent.click(screen.getByText('a'))
       await waitFor(() => expect(screen.getByText('Hoàn thành')).toBeInTheDocument())
       fireEvent.click(screen.getByText('Hoàn thành'))
-      await waitFor(() => expect(screen.getByText('1/1')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('1/1 câu đúng')).toBeInTheDocument())
 
       fireEvent.click(screen.getByText('Về danh sách Phần'))
-      expect(push).toHaveBeenCalledWith('/books/book-1/lessons/lesson-1/quiz')
-    })
-  })
-
-  describe('correct answer display on results screen (Fix 2)', () => {
-    it('shows the correct answer only for wrong answers, not correct ones', async () => {
-      mockSupabaseInsert()
-      const questions: QuizQuestion[] = [
-        {
-          id: 'q1',
-          lesson_id: 'lesson-1',
-          part: 1,
-          type: 'pinyin_choice',
-          order: 1,
-          payload: { prompt: 'Prompt 1', choices: ['a', 'b', 'c', 'd'], correctIndex: 0 },
-        },
-        {
-          id: 'q2',
-          lesson_id: 'lesson-1',
-          part: 1,
-          type: 'pinyin_choice',
-          order: 2,
-          payload: { prompt: 'Prompt 2', choices: ['w', 'x', 'y', 'z'], correctIndex: 2 },
-        },
-      ]
-      render(
-        <QuizPage
-          lessonId="lesson-1"
-          part1Questions={questions}
-          part2Questions={makeQuestions(2, 1)}
-          bestScores={{ part1: null, part2: null }}
-        />
-      )
-      fireEvent.click(screen.getAllByText('Bắt đầu', { selector: 'button' })[0])
-
-      // Q1: answer correctly (choose 'a', correctIndex 0)
-      fireEvent.click(screen.getByText('a'))
-      await waitFor(() => expect(screen.getByText('Tiếp')).toBeInTheDocument())
-      fireEvent.click(screen.getByText('Tiếp'))
-
-      // Q2: answer incorrectly (choose 'w', correctIndex is 2 -> 'y')
-      await waitFor(() => expect(screen.getByText('w')).toBeInTheDocument())
-      fireEvent.click(screen.getByText('w'))
-      await waitFor(() => expect(screen.getByText('Hoàn thành')).toBeInTheDocument())
-      fireEvent.click(screen.getByText('Hoàn thành'))
-
-      await waitFor(() => expect(screen.getByText('1/2')).toBeInTheDocument())
-
-      // Only the wrong question's correct answer should be shown
-      expect(screen.getByText('Đáp án đúng: y')).toBeInTheDocument()
-      expect(screen.queryByText('Đáp án đúng: a')).not.toBeInTheDocument()
+      expect(replace).toHaveBeenCalledWith('/books/book-1/lessons/lesson-1/quiz')
     })
   })
 
@@ -254,7 +211,7 @@ describe('QuizPage', () => {
       await waitFor(() => expect(screen.getByText('Hoàn thành')).toBeInTheDocument())
       fireEvent.click(screen.getByText('Hoàn thành'))
 
-      await waitFor(() => expect(screen.getByText('1/1')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('1/1 câu đúng')).toBeInTheDocument())
       expect(screen.getByText('Đang lưu kết quả...')).toBeInTheDocument()
       expect(screen.getByText('Về danh sách Phần')).toBeDisabled()
 

@@ -20,24 +20,24 @@ describe('SentenceOrderQuestion', () => {
     expect(screen.queryByText('Kiểm tra')).not.toBeInTheDocument()
   })
 
-  it('calls onAnswer(true) when words are picked in the correct order and checked', () => {
+  it('calls onAnswer(true, [2, 0, 1]) when words are picked in the correct order and checked', () => {
     const onAnswer = vi.fn()
     render(<SentenceOrderQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('我'))
     fireEvent.click(screen.getByText('去'))
     fireEvent.click(screen.getByText('學校'))
     fireEvent.click(screen.getByText('Kiểm tra'))
-    expect(onAnswer).toHaveBeenCalledWith(true)
+    expect(onAnswer).toHaveBeenCalledWith(true, [2, 0, 1])
   })
 
-  it('calls onAnswer(false) when words are picked in the wrong order and checked', () => {
+  it('calls onAnswer(false, [0, 2, 1]) when words are picked in the wrong order and checked', () => {
     const onAnswer = vi.fn()
     render(<SentenceOrderQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('去'))
     fireEvent.click(screen.getByText('我'))
     fireEvent.click(screen.getByText('學校'))
     fireEvent.click(screen.getByText('Kiểm tra'))
-    expect(onAnswer).toHaveBeenCalledWith(false)
+    expect(onAnswer).toHaveBeenCalledWith(false, [0, 2, 1])
   })
 
   it('allows un-picking a word by clicking it again in the built sentence', () => {

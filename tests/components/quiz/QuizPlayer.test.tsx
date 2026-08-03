@@ -44,8 +44,8 @@ describe('QuizPlayer', () => {
     fireEvent.click(screen.getByText('Hoàn thành'))
 
     expect(onPartComplete).toHaveBeenCalledWith([
-      { questionId: 'q1', isCorrect: true },
-      { questionId: 'q2', isCorrect: false },
+      { questionId: 'q1', isCorrect: true, userAnswer: 0 },
+      { questionId: 'q2', isCorrect: false, userAnswer: 1 },
     ])
   })
 

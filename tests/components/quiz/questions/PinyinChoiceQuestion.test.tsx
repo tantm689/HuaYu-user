@@ -14,18 +14,18 @@ describe('PinyinChoiceQuestion', () => {
     })
   })
 
-  it('calls onAnswer(true) when the correct choice is clicked', () => {
+  it('calls onAnswer(true, 0) when the correct choice is clicked', () => {
     const onAnswer = vi.fn()
     render(<PinyinChoiceQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('qì chē'))
-    expect(onAnswer).toHaveBeenCalledWith(true)
+    expect(onAnswer).toHaveBeenCalledWith(true, 0)
   })
 
-  it('calls onAnswer(false) when a wrong choice is clicked', () => {
+  it('calls onAnswer(false, 1) when a wrong choice is clicked', () => {
     const onAnswer = vi.fn()
     render(<PinyinChoiceQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('qí chē'))
-    expect(onAnswer).toHaveBeenCalledWith(false)
+    expect(onAnswer).toHaveBeenCalledWith(false, 1)
   })
 
   it('locks choices after answering — a second click does not call onAnswer again', () => {

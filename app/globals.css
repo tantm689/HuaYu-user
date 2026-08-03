@@ -36,3 +36,44 @@
   --radius-btn: 18px;
   --radius-pill: 999px;
 }
+
+@keyframes bounce-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.04); }
+  75% { transform: scale(0.99); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake-wrong {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+@keyframes slide-up-fade {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes check-pop {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-bounce-pop {
+  animation: bounce-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-shake-wrong {
+  animation: shake-wrong 0.4s ease-in-out forwards;
+}
+
+.animate-slide-up-fade {
+  animation: slide-up-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-check-pop {
+  animation: check-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+

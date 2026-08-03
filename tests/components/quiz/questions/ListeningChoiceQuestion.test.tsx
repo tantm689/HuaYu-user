@@ -20,18 +20,18 @@ describe('ListeningChoiceQuestion', () => {
     })
   })
 
-  it('calls onAnswer(true) when the correct choice is clicked', () => {
+  it('calls onAnswer(true, 1) when the correct choice is clicked', () => {
     const onAnswer = vi.fn()
     render(<ListeningChoiceQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('學校'))
-    expect(onAnswer).toHaveBeenCalledWith(true)
+    expect(onAnswer).toHaveBeenCalledWith(true, 1)
   })
 
-  it('calls onAnswer(false) when a wrong choice is clicked', () => {
+  it('calls onAnswer(false, 0) when a wrong choice is clicked', () => {
     const onAnswer = vi.fn()
     render(<ListeningChoiceQuestion payload={payload} onAnswer={onAnswer} />)
     fireEvent.click(screen.getByText('汽車'))
-    expect(onAnswer).toHaveBeenCalledWith(false)
+    expect(onAnswer).toHaveBeenCalledWith(false, 0)
   })
 
   it('locks choices after answering', () => {

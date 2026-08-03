@@ -2,15 +2,7 @@
 
 import { useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Check, X } from 'lucide-react'
-import type {
-  QuizQuestion,
-  PinyinChoicePayload,
-  ListeningChoicePayload,
-  ToneChoicePayload,
-  FillBlankPayload,
-  SentenceOrderPayload,
-} from '@/lib/db/types'
+import type { QuizQuestion } from '@/lib/db/types'
 import { recordQuizAttempt } from '@/lib/db/quiz'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import QuizPlayer, { type QuestionResult } from './QuizPlayer'
@@ -55,14 +47,29 @@ export default function QuizPage({
 
   const questionsByPart = { 1: part1Questions, 2: part2Questions } as const
 
+  // "Làm lại" luôn phải bỏ kết quả cũ ngay lập tức: nếu part không đổi (đang
+  // xem kết quả Phần 1, bấm Làm lại Phần 1), URL ?part=1 giữ nguyên nên
+  // router.replace() không tự kích hoạt render lại - phải setResult(null) ở
+  // đây thì nhánh `!result` mới đưa về QuizPlayer thay vì tiếp tục hiện màn
+  // kết quả cũ.
   function goToPart(part: 1 | 2) {
     setResult(null)
-    router.push(`${pathname}?part=${part}`)
+    if (view.mode === 'playing') {
+      router.replace(`${pathname}?part=${part}`)
+    } else {
+      router.push(`${pathname}?part=${part}`)
+    }
   }
 
+  // Ngược lại, "Về danh sách Phần" KHÔNG được xoá `result` ngay - router.replace()
+  // của Next.js App Router cập nhật URL bất đồng bộ (round-trip RSC), nên nếu
+  // setResult(null) chạy trước khi URL thực sự đổi, có một khoảng render với
+  // view.mode vẫn là 'playing' cũ nhưng result đã null -> component tụt xuống
+  // nhánh render QuizPlayer (trang làm quiz) trong vài giây trước khi URL kịp
+  // cập nhật về 'select'. Nhánh `view.mode === 'select'` return trước khi đọc
+  // `result`, nên cứ để result cũ tồn tại đến khi unmount tự nhiên là an toàn.
   function goToSelect() {
-    setResult(null)
-    router.push(pathname)
+    router.replace(pathname)
   }
 
   async function submitAttempt(part: 1 | 2, results: QuestionResult[]) {
@@ -127,19 +134,40 @@ export default function QuizPage({
 
   const score = result.results.filter((r) => r.isCorrect).length
   const total = result.results.length
+  const percent = total > 0 ? Math.round((score / total) * 100) : 0
+  const circumference = 2 * Math.PI * 54
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="rounded-card border border-card-border bg-white p-8 text-center shadow-sm">
-        <p className="font-han-title text-3xl font-bold text-ink">
-          {score}/{total}
-        </p>
-        <p className="mt-1 text-sm font-medium text-ink-faint">{PART_META[part].title} hoàn thành</p>
-        {saving && <p className="mt-1 text-xs font-medium text-ink-faint">Đang lưu kết quả...</p>}
+    <div className="mx-auto w-full max-w-lg rounded-card border border-card-border bg-white p-10 text-center shadow-sm">
+      <p className="font-han-title text-2xl font-bold text-ink">{PART_META[part].title} hoàn thành</p>
+
+      <div className="relative mx-auto my-8 h-44 w-44">
+        <svg viewBox="0 0 120 120" className="h-44 w-44 -rotate-90">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#EFE4CE" strokeWidth="12" />
+          <circle
+            cx="60"
+            cy="60"
+            r="54"
+            fill="none"
+            stroke="#7FBF8C"
+            strokeWidth="12"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference - (percent / 100) * circumference}
+            strokeLinecap="round"
+          />
+        </svg>
+        <span className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-han-title text-4xl font-bold text-ink">{percent}%</span>
+          <span className="mt-0.5 text-sm font-semibold text-ink-faint">
+            {score}/{total} câu đúng
+          </span>
+        </span>
       </div>
 
+      {saving && <p className="text-xs font-medium text-ink-faint">Đang lưu kết quả...</p>}
+
       {saveError && (
-        <div className="flex items-center justify-between rounded-card-sm border border-error-border bg-error-bg px-4 py-3">
+        <div className="mx-auto flex max-w-sm items-center justify-between rounded-card-sm border border-error-border bg-error-bg px-4 py-3">
           <p className="text-sm font-semibold text-error-text">{saveError}</p>
           <button
             type="button"
@@ -152,39 +180,11 @@ export default function QuizPage({
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
-        {result.results.map((r, i) => {
-          const question = questionsByPart[part][i]
-          const correctAnswer = !r.isCorrect ? correctAnswerSummary(question) : ''
-          return (
-            <div
-              key={r.questionId}
-              className={`rounded-card-sm border px-4 py-3 ${
-                r.isCorrect ? 'border-success-border bg-success-bg' : 'border-error-border bg-error-bg'
-              }`}
-            >
-              <p
-                className={`flex items-center gap-1.5 text-sm font-semibold ${
-                  r.isCorrect ? 'text-success-text' : 'text-error-text'
-                }`}
-              >
-                {r.isCorrect ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                Câu {i + 1}: {r.isCorrect ? 'Đúng' : 'Sai'}
-              </p>
-              <p className="mt-0.5 text-xs font-medium text-ink-faint">{questionSummary(question)}</p>
-              {correctAnswer && (
-                <p className="mt-0.5 text-xs font-medium text-ink-faint">Đáp án đúng: {correctAnswer}</p>
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="flex gap-3">
+      <div className="mx-auto mt-2 flex max-w-sm gap-3">
         <button
           type="button"
           onClick={() => goToPart(part)}
-          className="rounded-btn border border-card-border bg-white px-5 py-2.5 font-semibold text-ink shadow-sm transition-colors hover:bg-accent-bg"
+          className="flex-1 rounded-btn border border-card-border bg-white px-5 py-3 font-semibold text-ink shadow-sm transition-colors hover:bg-accent-bg"
         >
           Làm lại
         </button>
@@ -192,7 +192,7 @@ export default function QuizPage({
           type="button"
           disabled={saving}
           onClick={goToSelect}
-          className="rounded-btn bg-brand-red px-5 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark disabled:opacity-50"
+          className="flex-1 rounded-btn bg-brand-red px-5 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark disabled:opacity-50"
         >
           Về danh sách Phần
         </button>
@@ -201,50 +201,3 @@ export default function QuizPage({
   )
 }
 
-function questionSummary(question: QuizQuestion): string {
-  switch (question.type) {
-    case 'pinyin_choice':
-      return (question.payload as PinyinChoicePayload).prompt
-    case 'listening_choice':
-      return 'Nghe & chọn đáp án'
-    case 'tone_choice':
-      return (question.payload as ToneChoicePayload).wordZh
-    case 'fill_blank':
-      return (question.payload as FillBlankPayload).sentence
-    case 'matching':
-      return 'Ghép nghĩa/nối từ'
-    case 'sentence_order':
-      return (question.payload as SentenceOrderPayload).words.join(' / ')
-    default:
-      return ''
-  }
-}
-
-function correctAnswerSummary(question: QuizQuestion): string {
-  switch (question.type) {
-    case 'pinyin_choice': {
-      const payload = question.payload as PinyinChoicePayload
-      return payload.choices[payload.correctIndex]
-    }
-    case 'listening_choice': {
-      const payload = question.payload as ListeningChoicePayload
-      return payload.choices[payload.correctIndex]
-    }
-    case 'tone_choice': {
-      const payload = question.payload as ToneChoicePayload
-      return payload.choices[payload.correctIndex]
-    }
-    case 'fill_blank': {
-      const payload = question.payload as FillBlankPayload
-      return payload.choices[payload.correctIndex]
-    }
-    case 'sentence_order': {
-      const payload = question.payload as SentenceOrderPayload
-      return payload.correctOrder.map((i) => payload.words[i]).join(' ')
-    }
-    case 'matching':
-      return ''
-    default:
-      return ''
-  }
-}
