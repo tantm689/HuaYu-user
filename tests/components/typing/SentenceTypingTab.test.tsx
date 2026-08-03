@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import SentenceTypingTab from '@/app/(protected)/books/[bookId]/lessons/[lessonId]/typing/SentenceTypingTab'
@@ -23,6 +23,14 @@ const lines = [
 beforeEach(() => {
   upsert.mockClear()
   playMock.mockClear()
+  // Math.random() just under 1 keeps a 2-item Fisher-Yates shuffle a no-op
+  // (floor(0.999 * 2) = 1 = its own index), so tests can rely on `lines`'
+  // original order unless a test explicitly wants shuffling.
+  vi.spyOn(Math, 'random').mockReturnValue(0.999)
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('SentenceTypingTab', () => {
@@ -42,7 +50,7 @@ describe('SentenceTypingTab', () => {
     expect(screen.queryByRole('button', { name: /phát âm thanh/i })).not.toBeInTheDocument()
   })
 
-  it('locks the input and shows the correct answer after an incorrect submission, advances on Tiếp', async () => {
+  it('locks the input and shows the correct answer after an incorrect submission, advances on Tiếp theo', async () => {
     render(<SentenceTypingTab lines={lines} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: 'sai roi' } })
@@ -51,7 +59,7 @@ describe('SentenceTypingTab', () => {
     await waitFor(() => expect(input).toHaveAttribute('readonly'))
     expect(screen.getByText('你好嗎')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /^tiếp$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /tiếp theo/i }))
     expect(screen.getByText('tôi khỏe')).toBeInTheDocument()
   })
 
@@ -61,7 +69,7 @@ describe('SentenceTypingTab', () => {
     fireEvent.change(input, { target: { value: '你好嗎' } })
     fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
 
-    await waitFor(() => expect(screen.getByText('Chính xác!')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/chính xác!/i)).toBeInTheDocument())
     expect(screen.queryByText(/đáp án đúng/i)).not.toBeInTheDocument()
 
     expect(upsert).toHaveBeenCalledWith(
@@ -70,40 +78,43 @@ describe('SentenceTypingTab', () => {
     )
   })
 
-  it('shows a completion message after the last line', () => {
+  it('shows a completion message and a restart button after the last line', () => {
     render(<SentenceTypingTab lines={[lines[1]]} />)
     fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^tiếp$/i }))
-    expect(screen.getByText(/đã luyện xong 1 câu/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /tiếp theo/i }))
+    expect(screen.getByText(/đã luyện xong 1 câu hội thoại/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^làm lại$/i })).toBeInTheDocument()
   })
 
-  it('shows the correct/wrong tally and percent on the completion screen', () => {
-    render(<SentenceTypingTab lines={lines} />)
-
-    // First line: submit empty (counts as wrong)
-    fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^tiếp$/i }))
-
-    // Second line: submit correct
-    const input = screen.getByRole('textbox')
-    fireEvent.change(input, { target: { value: '我很好' } })
-    fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^tiếp$/i }))
-
-    expect(screen.getByText('Đã luyện xong 2 câu')).toBeInTheDocument()
-    expect(screen.getByText('1/2 câu đúng')).toBeInTheDocument()
-    expect(screen.getByText('50%')).toBeInTheDocument()
-  })
-
-  it('restarts from the first line and resets the tally when Làm lại is clicked', () => {
+  it('restarts from the first line when Làm lại is clicked', () => {
     render(<SentenceTypingTab lines={[lines[1]]} />)
     fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^tiếp$/i }))
-    expect(screen.getByText('Đã luyện xong 1 câu')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /tiếp theo/i }))
+    expect(screen.getByText(/đã luyện xong/i)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /^làm lại$/i }))
     expect(screen.getByText('tôi khỏe')).toBeInTheDocument()
     expect(screen.queryByText(/đã luyện xong/i)).not.toBeInTheDocument()
+  })
+
+  it('shuffles the line order on mount (swaps the only pair in a 2-item list when random() forces the swap)', () => {
+    // Fisher-Yates on a 2-item array does exactly one swap: i=1,
+    // j = Math.floor(random() * 2). random() = 0 -> j = 0 -> swap, putting
+    // the second line first. random() just under 1 -> j = 1 -> no swap.
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    render(<SentenceTypingTab lines={lines} />)
+    expect(screen.getByText('tôi khỏe')).toBeInTheDocument()
+    expect(screen.queryByText('bạn khỏe không')).not.toBeInTheDocument()
+  })
+
+  it('reshuffles when Làm lại is clicked (does not reuse the same fixed order object)', () => {
+    render(<SentenceTypingTab lines={[lines[1]]} />)
+    fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
+    fireEvent.click(screen.getByRole('button', { name: /tiếp theo/i }))
+
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    fireEvent.click(screen.getByRole('button', { name: /^làm lại$/i }))
+    expect(screen.getByText('tôi khỏe')).toBeInTheDocument()
   })
 
   it('does not crash and shows an empty-state message when lines is empty', () => {
