@@ -81,7 +81,8 @@ describe('ReviewSession completion screen', () => {
     fireEvent.click(screen.getByRole('button', { name: /^đã thuộc/i }))
 
     await waitFor(() => expect(screen.getByText('Vẫn còn 5 từ cần ôn')).toBeInTheDocument())
-    expect(screen.getByText(/trả lời đúng liên tiếp/i)).toBeInTheDocument()
+    expect(screen.getByText('3 lần liên tiếp')).toBeInTheDocument()
+    expect(screen.getByText(/tính lại từ 0/i)).toBeInTheDocument()
 
     expect(screen.getByRole('button', { name: /^về trang chủ$/i })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^ôn tiếp$/i }))

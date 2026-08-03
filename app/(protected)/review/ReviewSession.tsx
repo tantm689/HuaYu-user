@@ -52,7 +52,9 @@ function CompletionScreen() {
         </span>
         <p className="mt-4 font-han-title text-2xl font-bold text-ink">Vẫn còn {remaining} từ cần ôn</p>
         <p className="mx-auto mt-1 max-w-sm text-sm font-medium text-ink-faint">
-          Từ mới học cần trả lời đúng liên tiếp vài lần mới tính là thuộc, nên các từ này quay lại ngay để bạn ôn thêm.
+          Từ mới học cần trả lời đúng <strong className="text-ink">3 lần liên tiếp</strong> mới tính là thuộc. Nếu
+          giữa chừng trả lời sai 1 lần, số lần đúng sẽ tính lại từ 0 — vì vậy các từ này quay lại ngay để bạn ôn
+          thêm cho đủ 3 lần đúng.
         </p>
         <div className="mx-auto mt-6 flex max-w-sm gap-3">
           <button
