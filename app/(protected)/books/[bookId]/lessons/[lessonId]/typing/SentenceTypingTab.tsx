@@ -15,6 +15,16 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
   const [saveError, setSaveError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
 
+  if (lines.length === 0) {
+    return (
+      <div className="rounded-card border border-card-border bg-white p-8 text-center shadow-sm">
+        <p className="font-han-title text-base text-ink-faint">
+          Bài học này chưa có câu hội thoại để luyện gõ.
+        </p>
+      </div>
+    )
+  }
+
   if (done) {
     return (
       <div className="rounded-card border border-card-border bg-white p-8 text-center shadow-sm">

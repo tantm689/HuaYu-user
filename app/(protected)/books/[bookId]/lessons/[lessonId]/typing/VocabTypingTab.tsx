@@ -16,6 +16,8 @@ export default function VocabTypingTab({ vocabulary }: { vocabulary: Vocabulary[
 
   async function grade(vocab: Vocabulary) {
     const typed = values[vocab.id] ?? ''
+    if (typed.trim() === '') return
+
     const isCorrect = isExactMatch(typed, vocab.word_zh)
     setStates((prev) => ({ ...prev, [vocab.id]: isCorrect ? 'correct' : 'incorrect' }))
     setErrors((prev) => ({ ...prev, [vocab.id]: '' }))
@@ -27,6 +29,9 @@ export default function VocabTypingTab({ vocabulary }: { vocabulary: Vocabulary[
       setStreaks((prev) => ({ ...prev, [vocab.id]: isCorrect ? prevStreak + 1 : 0 }))
     } catch {
       setErrors((prev) => ({ ...prev, [vocab.id]: 'Không lưu được, kiểm tra kết nối mạng.' }))
+      if (!isCorrect) {
+        setStreaks((prev) => ({ ...prev, [vocab.id]: 0 }))
+      }
     }
   }
 

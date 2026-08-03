@@ -75,4 +75,10 @@ describe('SentenceTypingTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /^tiếp$/i }))
     expect(screen.getByText(/đã luyện xong 1 câu/i)).toBeInTheDocument()
   })
+
+  it('does not crash and shows an empty-state message when lines is empty', () => {
+    expect(() => render(<SentenceTypingTab lines={[]} />)).not.toThrow()
+    expect(screen.getByText(/bài học này chưa có câu hội thoại để luyện gõ/i)).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
 })

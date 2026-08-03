@@ -60,4 +60,15 @@ describe('VocabTypingTab', () => {
     fireEvent.blur(input)
     await waitFor(() => expect(input).toHaveAttribute('data-state', 'correct'))
   })
+
+  it('does not grade an untouched row on blur with an empty value', async () => {
+    render(<VocabTypingTab vocabulary={vocabulary} />)
+    const input = screen.getByLabelText('xin chào')
+
+    fireEvent.blur(input)
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(input).not.toHaveAttribute('data-state')
+    expect(upsert).not.toHaveBeenCalled()
+  })
 })
