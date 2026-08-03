@@ -20,6 +20,11 @@ interface FlashcardReviewerProps {
    * lưu vào localStorage theo key này để khôi phục lại đúng tiến trình nếu người
    * dùng refresh hoặc rời trang rồi quay lại. "Đặt lại thẻ" sẽ xoá tiến trình đã lưu. */
   storageKey?: string
+  /** Khi truyền vào, thay thế hoàn toàn màn "Đã ôn xong!" mặc định (kèm nút
+   * Đặt lại thẻ/Quay lại thẻ trước) bằng nội dung tuỳ ý - dùng cho những nơi
+   * "đặt lại/học lại ngay cùng bộ thẻ" không hợp lý, ví dụ phiên Ôn hôm nay
+   * gộp từ nhiều bài theo lịch SRS. */
+  renderCompletion?: () => React.ReactNode
 }
 
 interface SavedState {
@@ -71,7 +76,12 @@ function shuffleCards(cards: FlashcardCard[]): FlashcardCard[] {
   return result
 }
 
-export default function FlashcardReviewer({ cards: initialCards, onCardReviewed, storageKey }: FlashcardReviewerProps) {
+export default function FlashcardReviewer({
+  cards: initialCards,
+  onCardReviewed,
+  storageKey,
+  renderCompletion,
+}: FlashcardReviewerProps) {
   // Luôn khởi tạo bằng initialCards (khớp với SSR, nơi không có window/localStorage) —
   // tiến trình đã lưu (nếu có) chỉ được áp dụng SAU KHI mount, trong useEffect bên dưới.
   // Đọc localStorage ngay trong lazy initializer sẽ làm client hydrate khác server,
@@ -246,6 +256,8 @@ export default function FlashcardReviewer({ cards: initialCards, onCardReviewed,
   }, [flipped, saveError, allDone, saving, showRoundSummary])
 
   if (allDone) {
+    if (renderCompletion) return <>{renderCompletion()}</>
+
     return (
       <div className="rounded-card border border-card-border bg-white p-8 text-center shadow-sm">
         <p className="font-han-title text-xl font-bold text-ink">Đã ôn xong!</p>
