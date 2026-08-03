@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Volume2 } from 'lucide-react'
+import { Check, Volume2 } from 'lucide-react'
 import type { DialogueLineForTyping } from '@/lib/db/types'
 import { isExactMatch } from '@/lib/typing/normalize'
 import { upsertTypingProgress } from '@/lib/db/typingProgress'
@@ -159,6 +159,13 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
                 : 'border-card-border bg-white'
           }`}
         />
+
+        {graded === 'correct' && (
+          <div className="mt-1 flex items-center gap-1.5 rounded-card-sm border border-success-border/60 bg-success-bg/60 px-3.5 py-2 text-sm font-bold text-success-text">
+            <Check className="h-4 w-4" strokeWidth={3} />
+            Chính xác!
+          </div>
+        )}
 
         {graded === 'incorrect' && (
           <div className="mt-1 flex items-center gap-2 rounded-card-sm border border-error-border/60 bg-error-bg/60 px-3.5 py-2 text-sm text-error-text">

@@ -55,17 +55,18 @@ describe('SentenceTypingTab', () => {
     expect(screen.getByText('tôi khỏe')).toBeInTheDocument()
   })
 
-  it('marks correct on exact match (after normalization) and saves progress', async () => {
+  it('marks correct on exact match (after normalization), shows a "Chính xác!" label, and saves progress', async () => {
     render(<SentenceTypingTab lines={lines} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '你好嗎' } })
     fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
 
-    await waitFor(() =>
-      expect(upsert).toHaveBeenCalledWith(
-        { kind: 'dialogue_line', target_id: 'l1', is_correct: true, streak: 1, last_attempted_at: expect.any(String) },
-        { onConflict: 'user_id,kind,target_id' }
-      )
+    await waitFor(() => expect(screen.getByText('Chính xác!')).toBeInTheDocument())
+    expect(screen.queryByText(/đáp án đúng/i)).not.toBeInTheDocument()
+
+    expect(upsert).toHaveBeenCalledWith(
+      { kind: 'dialogue_line', target_id: 'l1', is_correct: true, streak: 1, last_attempted_at: expect.any(String) },
+      { onConflict: 'user_id,kind,target_id' }
     )
   })
 
