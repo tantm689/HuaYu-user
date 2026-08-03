@@ -66,3 +66,62 @@ export interface TypingProgress {
   streak: number
   last_attempted_at: string
 }
+
+export type QuizQuestionType =
+  | 'pinyin_choice'
+  | 'listening_choice'
+  | 'tone_choice'
+  | 'matching'
+  | 'fill_blank'
+  | 'sentence_order'
+
+export interface PinyinChoicePayload {
+  prompt: string
+  choices: string[]
+  correctIndex: number
+}
+
+export interface ListeningChoicePayload {
+  audioUrl: string
+  choices: string[]
+  correctIndex: number
+}
+
+export interface ToneChoicePayload {
+  wordZh: string
+  pinyinNoTone: string
+  choices: string[]
+  correctIndex: number
+}
+
+export interface MatchingPayload {
+  pairs: { left: string; right: string }[]
+}
+
+export interface FillBlankPayload {
+  sentence: string
+  choices: string[]
+  correctIndex: number
+}
+
+export interface SentenceOrderPayload {
+  words: string[]
+  correctOrder: number[]
+}
+
+export type QuizQuestionPayload =
+  | PinyinChoicePayload
+  | ListeningChoicePayload
+  | ToneChoicePayload
+  | MatchingPayload
+  | FillBlankPayload
+  | SentenceOrderPayload
+
+export interface QuizQuestion {
+  id: string
+  lesson_id: string
+  part: 1 | 2
+  type: QuizQuestionType
+  order: number
+  payload: QuizQuestionPayload
+}
