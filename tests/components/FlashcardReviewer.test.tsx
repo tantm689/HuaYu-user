@@ -125,6 +125,21 @@ describe('FlashcardReviewer', () => {
     await waitFor(() => expect(screen.getByText('謝謝')).toBeInTheDocument())
   })
 
+  it('ignores a second rapid click on the answer button while the first answer is still animating, keeping the round total in sync with the actual card count', async () => {
+    render(<FlashcardReviewer cards={cards} />)
+    flipCard()
+    const correctButton = screen.getByRole('button', { name: /^đã thuộc/i })
+    fireEvent.click(correctButton)
+    // Second click fired immediately after the first, before the 500ms
+    // reveal animation (and thus before goToNext) has run — the button
+    // must already be disabled at this point, not just after the animation.
+    fireEvent.click(correctButton)
+
+    await waitFor(() => expect(screen.getByText('謝謝')).toBeInTheDocument())
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('1/2')).toBeInTheDocument()
+  })
+
   it('marking "Chưa thuộc" at box 0 resets learning_streak to 0 and advances to next card', async () => {
     render(<FlashcardReviewer cards={cards} />)
     flipCard()

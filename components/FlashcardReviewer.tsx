@@ -447,11 +447,17 @@ export default function FlashcardReviewer({
       window.setTimeout(() => {
         goToNext(card.vocabulary.id, correct, updatedCard, entry)
         setFeedback(null)
+        // Chỉ mở khoá nút Đúng/Sai SAU KHI đã thực sự chuyển sang thẻ kế —
+        // đặt setSaving(false) ở finally bên dưới (chạy ngay sau khi lưu
+        // Supabase xong) từng để hở 500ms mà nút không bị disable trong lúc
+        // chờ animation, nên bấm nhanh liên tiếp trên cùng 1 thẻ gọi
+        // goToNext() nhiều lần và làm roundTotal/doneInRound vượt quá số
+        // thẻ thực có (ví dụ "20/15").
+        setSaving(false)
       }, 500)
     } catch {
       setSaveError('Không lưu được, kiểm tra kết nối mạng.')
       setFeedback(null)
-    } finally {
       setSaving(false)
     }
   }
