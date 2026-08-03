@@ -19,7 +19,12 @@ export default async function ReviewPage() {
       {dueCards.length === 0 ? (
         <p className="font-semibold text-ink-faint">Không có từ nào đến hạn ôn hôm nay.</p>
       ) : (
-        <ReviewSession cards={dueCards} />
+        // key theo đúng bộ id thẻ đến hạn: bấm "Ôn tiếp" ở màn hoàn thành gọi
+        // router.refresh() để page.tsx fetch lại dueCards mới, nhưng
+        // FlashcardReviewer chỉ đọc `cards` prop lúc mount (không tự đồng bộ
+        // lại sau đó) - key đổi buộc React remount để nó nhận đúng bộ thẻ mới
+        // thay vì tiếp tục hiện lại màn "Đã ôn xong!" cũ.
+        <ReviewSession key={dueCards.map((c) => c.progress.id).join(',')} cards={dueCards} />
       )}
     </div>
   )
