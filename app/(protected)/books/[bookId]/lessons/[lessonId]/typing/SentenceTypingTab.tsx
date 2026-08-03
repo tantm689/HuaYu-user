@@ -58,6 +58,22 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
             </span>
           </span>
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setIndex(0)
+            setValue('')
+            setGraded(null)
+            setSaveError(null)
+            setDone(false)
+            setCorrectCount(0)
+            setWrongCount(0)
+          }}
+          className="mx-auto rounded-btn bg-brand-red px-8 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
+        >
+          Làm lại
+        </button>
       </div>
     )
   }
@@ -97,9 +113,9 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
 
   const stateClasses =
     graded === 'correct'
-      ? 'animate-bounce-pop border-success-border bg-success-bg shadow-md'
+      ? 'animate-fade-in border-success-border bg-success-bg'
       : graded === 'incorrect'
-        ? 'animate-shake-wrong border-error-border bg-error-bg shadow-md'
+        ? 'animate-fade-in border-error-border bg-error-bg'
         : 'border-card-border bg-white'
 
   return (
@@ -108,7 +124,7 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
         Câu {index + 1}/{lines.length}
       </p>
 
-      <div className={`flex flex-col gap-3 rounded-card border p-5 shadow-sm ${stateClasses}`}>
+      <div className={`flex flex-col gap-3 rounded-card border p-5 shadow-sm transition-colors ${stateClasses}`}>
         <div className="flex items-center gap-3">
           <p className="flex-1 font-medium text-ink">{line.translation_vi}</p>
           {line.audio_url && (

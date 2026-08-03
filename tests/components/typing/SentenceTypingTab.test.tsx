@@ -94,6 +94,17 @@ describe('SentenceTypingTab', () => {
     expect(screen.getByText('50%')).toBeInTheDocument()
   })
 
+  it('restarts from the first line and resets the tally when Làm lại is clicked', () => {
+    render(<SentenceTypingTab lines={[lines[1]]} />)
+    fireEvent.click(screen.getByRole('button', { name: /kiểm tra/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^tiếp$/i }))
+    expect(screen.getByText('Đã luyện xong 1 câu')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /^làm lại$/i }))
+    expect(screen.getByText('tôi khỏe')).toBeInTheDocument()
+    expect(screen.queryByText(/đã luyện xong/i)).not.toBeInTheDocument()
+  })
+
   it('does not crash and shows an empty-state message when lines is empty', () => {
     expect(() => render(<SentenceTypingTab lines={[]} />)).not.toThrow()
     expect(screen.getByText(/bài học này chưa có câu hội thoại để luyện gõ/i)).toBeInTheDocument()
