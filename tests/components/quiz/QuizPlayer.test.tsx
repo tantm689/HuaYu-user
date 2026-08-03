@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import QuizPlayer from '@/app/(protected)/books/[bookId]/lessons/[lessonId]/quiz/QuizPlayer'
 import type { QuizQuestion } from '@/lib/db/types'
 
@@ -14,6 +14,17 @@ function makeQuestions(count: number): QuizQuestion[] {
     payload: { prompt: `Prompt ${i + 1}`, choices: ['a', 'b', 'c', 'd'], correctIndex: 0 },
   }))
 }
+
+beforeEach(() => {
+  // Question order and per-question answer-choice order are both shuffled;
+  // random() just under 1 keeps every Fisher-Yates swap a no-op so tests can
+  // rely on the input order unless a test explicitly forces a shuffle.
+  vi.spyOn(Math, 'random').mockReturnValue(0.999)
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('QuizPlayer', () => {
   it('renders the first question and a progress indicator', () => {
@@ -54,5 +65,12 @@ describe('QuizPlayer', () => {
     fireEvent.click(screen.getByText('a'))
     await waitFor(() => expect(screen.getByText('Hoàn thành')).toBeInTheDocument())
     expect(screen.queryByText('Tiếp')).not.toBeInTheDocument()
+  })
+
+  it('shuffles question order on mount (swaps the only pair in a 2-question list when random() forces the swap)', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    render(<QuizPlayer questions={makeQuestions(2)} onPartComplete={vi.fn()} />)
+    expect(screen.getByText('Prompt 2')).toBeInTheDocument()
+    expect(screen.queryByText('Prompt 1')).not.toBeInTheDocument()
   })
 })

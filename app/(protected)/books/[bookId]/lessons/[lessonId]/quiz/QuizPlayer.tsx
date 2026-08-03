@@ -11,6 +11,7 @@ import type {
   FillBlankPayload,
   SentenceOrderPayload,
 } from '@/lib/db/types'
+import { shuffle } from '@/lib/quiz/grading'
 import PinyinChoiceQuestion from './questions/PinyinChoiceQuestion'
 import ListeningChoiceQuestion from './questions/ListeningChoiceQuestion'
 import ToneChoiceQuestion from './questions/ToneChoiceQuestion'
@@ -31,12 +32,13 @@ export default function QuizPlayer({
   questions: QuizQuestion[]
   onPartComplete: (results: QuestionResult[]) => void
 }) {
+  const [shuffledQuestions] = useState(() => shuffle(questions))
   const [index, setIndex] = useState(0)
   const [results, setResults] = useState<QuestionResult[]>([])
   const [pendingResult, setPendingResult] = useState<{ isCorrect: boolean; userAnswer?: any } | null>(null)
 
-  const question = questions[index]
-  const isLast = index === questions.length - 1
+  const question = shuffledQuestions[index]
+  const isLast = index === shuffledQuestions.length - 1
 
   function handleAnswer(isCorrect: boolean, userAnswer?: any) {
     setPendingResult({ isCorrect, userAnswer })
@@ -64,11 +66,11 @@ export default function QuizPlayer({
         <div className="h-2 flex-1 overflow-hidden rounded-pill bg-accent-bg">
           <div
             className="h-full rounded-pill bg-brand-gold transition-[width] duration-500 ease-out"
-            style={{ width: `${(index / questions.length) * 100}%` }}
+            style={{ width: `${(index / shuffledQuestions.length) * 100}%` }}
           />
         </div>
         <span className="shrink-0 text-xs font-semibold text-ink-faint">
-          Câu {index + 1}/{questions.length}
+          Câu {index + 1}/{shuffledQuestions.length}
         </span>
       </div>
 

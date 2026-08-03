@@ -44,6 +44,11 @@ export default function QuizPage({
   const [scores, setScores] = useState(bestScores)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // Bumped every time a part starts/restarts, used as QuizPlayer's `key` so
+  // React remounts it instead of reusing the instance - otherwise "Làm lại"
+  // on the same part keeps the same QuizPlayer, whose question order and
+  // per-question answer-choice order were only shuffled once on first mount.
+  const [attemptId, setAttemptId] = useState(0)
 
   const questionsByPart = { 1: part1Questions, 2: part2Questions } as const
 
@@ -54,6 +59,7 @@ export default function QuizPage({
   // kết quả cũ.
   function goToPart(part: 1 | 2) {
     setResult(null)
+    setAttemptId((id) => id + 1)
     if (view.mode === 'playing') {
       router.replace(`${pathname}?part=${part}`)
     } else {
@@ -123,6 +129,7 @@ export default function QuizPage({
   if (!result || result.part !== part) {
     return (
       <QuizPlayer
+        key={`${part}-${attemptId}`}
         questions={questionsByPart[part]}
         onPartComplete={(results) => {
           setResult({ part, results })
