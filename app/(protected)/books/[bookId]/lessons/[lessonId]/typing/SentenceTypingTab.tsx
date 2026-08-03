@@ -95,6 +95,10 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
           type="text"
           value={value}
           readOnly={graded !== null}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && graded === null) grade()

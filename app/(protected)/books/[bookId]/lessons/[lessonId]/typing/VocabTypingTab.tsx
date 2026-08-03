@@ -124,6 +124,10 @@ export default function VocabTypingTab({ vocabulary }: { vocabulary: Vocabulary[
                         aria-label={vocab.meaning_vi ?? ''}
                         data-state={state ?? undefined}
                         type="text"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
                         value={values[vocab.id] ?? ''}
                         onChange={(e) => {
                           const next = e.target.value
