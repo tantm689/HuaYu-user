@@ -74,9 +74,7 @@ export default function VocabTypingTab({ vocabulary }: { vocabulary: Vocabulary[
             <tr className="border-b border-card-border bg-accent-bg/70 text-xs font-bold text-ink">
               <th className="w-12 border-r border-card-border px-3 py-2.5 text-center">STT</th>
               <th className="border-r border-card-border px-4 py-2.5">Giải thích (Nghĩa)</th>
-              <th className="border-r border-card-border px-4 py-2.5 min-w-[260px]">Luyện tập (Gõ từ mới)</th>
-              <th className="border-r border-card-border px-4 py-2.5">Chữ Hán</th>
-              <th className="border-r border-card-border px-4 py-2.5">Phiên âm</th>
+              <th className="border-r border-card-border px-4 py-2.5">Luyện tập (Gõ từ mới)</th>
               <th className="w-16 px-3 py-2.5 text-center">Gợi ý</th>
             </tr>
           </thead>
@@ -123,22 +121,14 @@ export default function VocabTypingTab({ vocabulary }: { vocabulary: Vocabulary[
                         <X className="absolute right-2.5 h-4 w-4 text-error-text" strokeWidth={3} />
                       )}
                     </div>
+                    {isRevealed && (
+                      <p className="mt-1.5 text-xs font-medium text-ink-faint">
+                        <span className="font-han-title text-sm font-semibold text-ink">{vocab.word_zh}</span>
+                        {vocab.pinyin && <span> · {vocab.pinyin}</span>}
+                      </p>
+                    )}
                     {errors[vocab.id] && (
                       <p className="mt-1 text-xs font-medium text-error-text">{errors[vocab.id]}</p>
-                    )}
-                  </td>
-                  <td className="border-r border-card-border/60 px-4 py-3">
-                    {isRevealed ? (
-                      <span className="font-han-title text-lg font-bold text-ink">{vocab.word_zh}</span>
-                    ) : (
-                      <span className="font-mono text-xs font-semibold tracking-wider text-slate-300">••••••</span>
-                    )}
-                  </td>
-                  <td className="border-r border-card-border/60 px-4 py-3">
-                    {isRevealed ? (
-                      <span className="font-medium text-ink">{vocab.pinyin}</span>
-                    ) : (
-                      <span className="font-mono text-xs font-semibold tracking-wider text-slate-300">••••••</span>
                     )}
                   </td>
                   <td className="px-3 py-3 text-center">
