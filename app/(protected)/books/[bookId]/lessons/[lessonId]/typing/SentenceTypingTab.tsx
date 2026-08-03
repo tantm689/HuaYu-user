@@ -103,9 +103,10 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
         />
 
         {graded === 'incorrect' && (
-          <p className="font-han-title text-base text-ink-faint">
-            Đáp án đúng: <span className="font-bold text-ink">{line.text_zh}</span>
-          </p>
+          <div className="mt-1 flex items-center gap-2 rounded-card-sm border border-error-border/60 bg-error-bg/60 px-3.5 py-2 text-sm text-error-text">
+            <span className="text-xs font-semibold text-error-text/80 uppercase tracking-wide">Đáp án đúng:</span>
+            <span className="font-han-title text-lg font-bold text-ink">{line.text_zh}</span>
+          </div>
         )}
 
         {saveError && <p className="text-xs font-medium text-error-text">{saveError}</p>}
