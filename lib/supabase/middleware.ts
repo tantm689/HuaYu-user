@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { User } from '@supabase/supabase-js'
 
-const PUBLIC_PATH_PREFIXES = ['/login', '/auth/callback']
+const PUBLIC_PATH_PREFIXES = ['/login', '/register', '/auth/callback']
 
 export function shouldRedirectToLogin(user: User | null, pathname: string): boolean {
   if (PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false

@@ -20,4 +20,8 @@ describe('shouldRedirectToLogin', () => {
   it('returns false for /auth/callback even when user is null', () => {
     expect(shouldRedirectToLogin(null, '/auth/callback')).toBe(false)
   })
+
+  it('returns false for /register even when user is null', () => {
+    expect(shouldRedirectToLogin(null, '/register')).toBe(false)
+  })
 })
