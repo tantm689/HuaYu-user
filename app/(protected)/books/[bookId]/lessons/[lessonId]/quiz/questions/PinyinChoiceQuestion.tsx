@@ -32,7 +32,14 @@ export default function PinyinChoiceQuestion({
       <p className="text-center text-xs font-bold uppercase tracking-wide text-ink-faint">
         {promptIsHanzi ? 'Chọn pinyin đúng cho chữ Hán sau' : 'Chọn chữ Hán đúng cho pinyin sau'}
       </p>
-      <p className="text-center font-han-title text-3xl font-bold text-ink">{payload.prompt}</p>
+      {/* prompt pinyin dùng font-ui (Latin) chứ không phải font-han-title
+          (Noto Serif SC, tối ưu cho CJK) - font CJK render sai vị trí dấu
+          thanh điệu Latin (ví dụ dấu ngang của "hē" bị tách rời khỏi "e"). */}
+      <p
+        className={`text-center text-3xl font-bold text-ink ${promptIsHanzi ? 'font-han-title' : 'font-ui'}`}
+      >
+        {payload.prompt}
+      </p>
       <div className="flex flex-col gap-2.5">
         {shuffledChoices.map(({ item: choice, originalIndex }, position) => {
           const isSelected = selectedIndex === originalIndex
