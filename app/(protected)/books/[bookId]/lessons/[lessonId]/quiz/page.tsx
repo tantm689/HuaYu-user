@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { getLesson } from '@/lib/db/getLesson'
-import { getQuizQuestions, getBestQuizScores } from '@/lib/db/quiz'
+import { getQuizQuestions } from '@/lib/db/quiz'
 import BackButton from '@/components/BackButton'
 import QuizPage from './QuizPage'
 
@@ -16,10 +16,9 @@ export default async function LessonQuizPage({
 
   if (!lesson) notFound()
 
-  const [part1Questions, part2Questions, bestScores] = await Promise.all([
+  const [part1Questions, part2Questions] = await Promise.all([
     getQuizQuestions(supabase, lessonId, 1),
     getQuizQuestions(supabase, lessonId, 2),
-    getBestQuizScores(supabase, lessonId),
   ])
 
   return (
@@ -36,12 +35,7 @@ export default async function LessonQuizPage({
       {part1Questions.length === 0 && part2Questions.length === 0 ? (
         <p className="font-semibold text-ink-faint">Bài này chưa có câu hỏi quiz.</p>
       ) : (
-        <QuizPage
-          lessonId={lessonId}
-          part1Questions={part1Questions}
-          part2Questions={part2Questions}
-          bestScores={bestScores}
-        />
+        <QuizPage part1Questions={part1Questions} part2Questions={part2Questions} />
       )}
     </div>
   )

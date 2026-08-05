@@ -3,8 +3,6 @@
 import { useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { QuizQuestion } from '@/lib/db/types'
-import { recordQuizAttempt } from '@/lib/db/quiz'
-import { createBrowserSupabase } from '@/lib/supabase/browser'
 import QuizPlayer, { type QuestionResult } from './QuizPlayer'
 
 type ViewState = { mode: 'select' } | { mode: 'playing'; part: 1 | 2 }
@@ -25,15 +23,11 @@ const PART_META = {
 } as const
 
 export default function QuizPage({
-  lessonId,
   part1Questions,
   part2Questions,
-  bestScores,
 }: {
-  lessonId: string
   part1Questions: QuizQuestion[]
   part2Questions: QuizQuestion[]
-  bestScores: { part1: number | null; part2: number | null }
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -41,9 +35,6 @@ export default function QuizPage({
   const view = parseView(searchParams)
 
   const [result, setResult] = useState<ResultState>(null)
-  const [scores, setScores] = useState(bestScores)
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
   // Bumped every time a part starts/restarts, used as QuizPlayer's `key` so
   // React remounts it instead of reusing the instance - otherwise "Làm lại"
   // on the same part keeps the same QuizPlayer, whose question order and
@@ -78,48 +69,22 @@ export default function QuizPage({
     router.replace(pathname)
   }
 
-  async function submitAttempt(part: 1 | 2, results: QuestionResult[]) {
-    const score = results.filter((r) => r.isCorrect).length
-    const total = results.length
-
-    setSaving(true)
-    setSaveError(null)
-    try {
-      const supabase = createBrowserSupabase()
-      await recordQuizAttempt(supabase, lessonId, part, score, total)
-      setScores((prev) => ({
-        ...prev,
-        [part === 1 ? 'part1' : 'part2']: Math.max(prev[part === 1 ? 'part1' : 'part2'] ?? 0, score),
-      }))
-    } catch {
-      setSaveError('Không lưu được, kiểm tra kết nối mạng.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   if (view.mode === 'select') {
     return (
       <div className="flex flex-col gap-3">
-        {([1, 2] as const).map((part) => {
-          const bestScore = part === 1 ? scores.part1 : scores.part2
-          return (
-            <div key={part} className="rounded-card border border-card-border bg-white p-5 shadow-sm">
-              <p className="font-han-title text-lg font-bold text-ink">{PART_META[part].title}</p>
-              <p className="text-sm font-medium text-ink-faint">{PART_META[part].description}</p>
-              {bestScore !== null && (
-                <p className="mt-1 text-sm font-semibold text-brand-red">Điểm cao nhất: {bestScore}/15</p>
-              )}
-              <button
-                type="button"
-                onClick={() => goToPart(part)}
-                className="mt-3 rounded-btn bg-brand-red px-5 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
-              >
-                {bestScore !== null ? 'Làm lại' : 'Bắt đầu'}
-              </button>
-            </div>
-          )
-        })}
+        {([1, 2] as const).map((part) => (
+          <div key={part} className="rounded-card border border-card-border bg-white p-5 shadow-sm">
+            <p className="font-han-title text-lg font-bold text-ink">{PART_META[part].title}</p>
+            <p className="text-sm font-medium text-ink-faint">{PART_META[part].description}</p>
+            <button
+              type="button"
+              onClick={() => goToPart(part)}
+              className="mt-3 rounded-btn bg-brand-red px-5 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
+            >
+              Bắt đầu
+            </button>
+          </div>
+        ))}
       </div>
     )
   }
@@ -131,10 +96,7 @@ export default function QuizPage({
       <QuizPlayer
         key={`${part}-${attemptId}`}
         questions={questionsByPart[part]}
-        onPartComplete={(results) => {
-          setResult({ part, results })
-          submitAttempt(part, results)
-        }}
+        onPartComplete={(results) => setResult({ part, results })}
       />
     )
   }
@@ -171,22 +133,6 @@ export default function QuizPage({
         </span>
       </div>
 
-      {saving && <p className="text-xs font-medium text-ink-faint">Đang lưu kết quả...</p>}
-
-      {saveError && (
-        <div className="mx-auto flex max-w-sm items-center justify-between rounded-card-sm border border-error-border bg-error-bg px-4 py-3">
-          <p className="text-sm font-semibold text-error-text">{saveError}</p>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => submitAttempt(part, result.results)}
-            className="rounded-btn border border-error-border bg-white px-4 py-1.5 text-sm font-semibold text-error-text transition-colors hover:bg-red-100 disabled:opacity-50"
-          >
-            Thử lại
-          </button>
-        </div>
-      )}
-
       <div className="mx-auto mt-2 flex max-w-sm gap-3">
         <button
           type="button"
@@ -197,9 +143,8 @@ export default function QuizPage({
         </button>
         <button
           type="button"
-          disabled={saving}
           onClick={goToSelect}
-          className="flex-1 rounded-btn bg-brand-red px-5 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark disabled:opacity-50"
+          className="flex-1 rounded-btn bg-brand-red px-5 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-brand-red-dark"
         >
           Về danh sách Phần
         </button>

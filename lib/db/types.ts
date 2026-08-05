@@ -41,8 +41,6 @@ export interface DialogueVocabulary {
   words: Vocabulary[]
 }
 
-export type TypingKind = 'vocabulary' | 'dialogue_line'
-
 export interface VocabularyProgress {
   id: string
   user_id: string
@@ -52,26 +50,6 @@ export interface VocabularyProgress {
   due_at: string
   last_reviewed_at: string | null
   created_at: string
-}
-
-export interface QuizAttempt {
-  id: string
-  user_id: string
-  lesson_id: string
-  part: 1 | 2
-  score: number
-  total: number
-  created_at: string
-}
-
-export interface TypingProgress {
-  id: string
-  user_id: string
-  kind: TypingKind
-  target_id: string
-  is_correct: boolean
-  streak: number
-  last_attempted_at: string
 }
 
 export type QuizQuestionType =

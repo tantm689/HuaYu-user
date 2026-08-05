@@ -3,12 +3,6 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import SentenceTypingTab from '@/app/(protected)/books/[bookId]/lessons/[lessonId]/typing/SentenceTypingTab'
 
-const upsert = vi.fn().mockResolvedValue({ error: null })
-
-vi.mock('@/lib/supabase/browser', () => ({
-  createBrowserSupabase: () => ({ from: vi.fn().mockReturnValue({ upsert }) }),
-}))
-
 const playMock = vi.fn().mockResolvedValue(undefined)
 const audioConstructorMock = vi.fn()
 const audioListeners: Record<string, (() => void)[]> = {}
@@ -39,7 +33,6 @@ const lines = [
 ]
 
 beforeEach(() => {
-  upsert.mockClear()
   playMock.mockClear()
   audioConstructorMock.mockClear()
   Object.keys(audioListeners).forEach((key) => delete audioListeners[key])
@@ -112,7 +105,7 @@ describe('SentenceTypingTab', () => {
     expect(screen.getByText('tôi khỏe')).toBeInTheDocument()
   })
 
-  it('marks correct on exact match (after normalization), shows a "Chính xác!" label, and saves progress', async () => {
+  it('marks correct on exact match (after normalization), shows a "Chính xác!" label', async () => {
     render(<SentenceTypingTab lines={lines} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '你好嗎' } })
@@ -120,11 +113,6 @@ describe('SentenceTypingTab', () => {
 
     await waitFor(() => expect(screen.getByText(/chính xác!/i)).toBeInTheDocument())
     expect(screen.queryByText(/đáp án đúng/i)).not.toBeInTheDocument()
-
-    expect(upsert).toHaveBeenCalledWith(
-      { kind: 'dialogue_line', target_id: 'l1', is_correct: true, streak: 1, last_attempted_at: expect.any(String) },
-      { onConflict: 'user_id,kind,target_id' }
-    )
   })
 
   it('shows a completion message and a restart button after the last line', () => {

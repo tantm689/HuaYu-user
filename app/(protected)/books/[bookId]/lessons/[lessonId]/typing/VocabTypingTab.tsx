@@ -4,38 +4,21 @@ import { useState } from 'react'
 import { Check, Eye, EyeOff, RotateCcw, X } from 'lucide-react'
 import type { Vocabulary } from '@/lib/db/types'
 import { isExactMatch } from '@/lib/typing/normalize'
-import { upsertTypingProgress } from '@/lib/db/typingProgress'
-import { createBrowserSupabase } from '@/lib/supabase/browser'
 
 type RowState = 'correct' | 'incorrect' | null
 
 export default function VocabTypingTab({ vocabulary }: { vocabulary: Vocabulary[] }) {
   const [values, setValues] = useState<Record<string, string>>({})
   const [states, setStates] = useState<Record<string, RowState>>({})
-  const [streaks, setStreaks] = useState<Record<string, number>>({})
-  const [errors, setErrors] = useState<Record<string, string>>({})
   const [revealAllHints, setRevealAllHints] = useState(false)
   const [revealedRows, setRevealedRows] = useState<Record<string, boolean>>({})
 
-  async function grade(vocab: Vocabulary) {
+  function grade(vocab: Vocabulary) {
     const typed = values[vocab.id] ?? ''
     if (typed.trim() === '') return
 
     const isCorrect = isExactMatch(typed, vocab.word_zh)
     setStates((prev) => ({ ...prev, [vocab.id]: isCorrect ? 'correct' : 'incorrect' }))
-    setErrors((prev) => ({ ...prev, [vocab.id]: '' }))
-
-    const prevStreak = streaks[vocab.id] ?? 0
-    try {
-      const supabase = createBrowserSupabase()
-      await upsertTypingProgress(supabase, 'vocabulary', vocab.id, isCorrect, prevStreak)
-      setStreaks((prev) => ({ ...prev, [vocab.id]: isCorrect ? prevStreak + 1 : 0 }))
-    } catch {
-      setErrors((prev) => ({ ...prev, [vocab.id]: 'Không lưu được kết quả, kiểm tra kết nối mạng.' }))
-      if (!isCorrect) {
-        setStreaks((prev) => ({ ...prev, [vocab.id]: 0 }))
-      }
-    }
   }
 
   function toggleRowHint(id: string) {
@@ -45,7 +28,6 @@ export default function VocabTypingTab({ vocabulary }: { vocabulary: Vocabulary[
   function handleResetAll() {
     setValues({})
     setStates({})
-    setErrors({})
     setRevealedRows({})
     setRevealAllHints(false)
   }
@@ -156,10 +138,6 @@ export default function VocabTypingTab({ vocabulary }: { vocabulary: Vocabulary[
                         <span className="font-han-title text-base font-bold text-ink">{vocab.word_zh}</span>
                         {vocab.pinyin && <span className="font-medium text-slate-600">({vocab.pinyin})</span>}
                       </div>
-                    )}
-
-                    {errors[vocab.id] && (
-                      <p className="mt-1 text-xs font-medium text-error-text">{errors[vocab.id]}</p>
                     )}
                   </td>
                   <td className="px-3 py-3 text-center align-top">
