@@ -39,4 +39,21 @@ describe('FillBlankQuestion', () => {
     fireEvent.click(screen.getByText('去'))
     expect(onAnswer).toHaveBeenCalledTimes(1)
   })
+
+  // The Admin app joins a context sentence and the blanked sentence with a
+  // literal "\n" when they're two different speakers' turns in the
+  // original dialogue - a plain <p> collapses that into one run-on line
+  // (real browsers and jsdom's textContent both do this), so the sentence
+  // element needs a CSS rule that actually preserves it as a line break.
+  it('preserves a literal newline in the sentence as a real line break (whitespace-pre-line), not collapsed run-on text', () => {
+    const twoSpeakerPayload = {
+      sentence: '這是烏龍茶。臺灣人喜歡喝茶。\n開文，你們日本人___?',
+      choices: ['呢', '嗎', '不', '很'],
+      correctIndex: 0,
+    }
+    const { container } = render(<FillBlankQuestion payload={twoSpeakerPayload} onAnswer={vi.fn()} />)
+    const sentenceEl = container.querySelector('p.whitespace-pre-line')
+    expect(sentenceEl).not.toBeNull()
+    expect(sentenceEl?.textContent).toBe('這是烏龍茶。臺灣人喜歡喝茶。\n開文，你們日本人___?')
+  })
 })

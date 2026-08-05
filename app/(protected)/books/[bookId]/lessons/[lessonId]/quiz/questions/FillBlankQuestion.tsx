@@ -32,7 +32,12 @@ export default function FillBlankQuestion({
         Chọn từ đúng để điền vào chỗ trống
       </p>
       <div className="text-center">
-        <p className="font-han-title text-2xl font-bold text-ink">{payload.sentence}</p>
+        {/* payload.sentence may contain a literal "\n" between the context
+            sentence and the blanked sentence when they're two different
+            speakers' turns (see the Admin app's PART2_PROMPT) - whitespace-pre-line
+            preserves that as a real line break instead of collapsing it
+            the way a plain <p> would. */}
+        <p className="font-han-title text-2xl font-bold whitespace-pre-line text-ink">{payload.sentence}</p>
       </div>
       <div className="flex flex-col gap-2.5">
         {shuffledChoices.map(({ item: choice, originalIndex }, position) => {
