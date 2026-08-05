@@ -8,6 +8,8 @@ export async function createServerSupabase() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Distinct cookie name from the Admin app - see lib/supabase/browser.ts.
+      cookieOptions: { name: 'sb-user-auth-token' },
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll: (cookiesToSet) => {
