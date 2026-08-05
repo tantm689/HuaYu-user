@@ -19,6 +19,11 @@ export interface Lesson {
   grammar_markdown: string | null
 }
 
+// Lesson list rows (e.g. book-level lesson listings) intentionally omit the
+// potentially-large grammar_markdown text column - it's only selected when
+// fetching a single lesson's full detail, not for every row in a list.
+export type LessonListItem = Omit<Lesson, 'grammar_markdown'>
+
 export interface Vocabulary {
   id: string
   dialogue_id: string

@@ -15,6 +15,9 @@
 export interface GrammarMarkdownSection {
   id: string
   title: string
+  // Unused in this repo (no join-back-to-markdown step here) - kept for
+  // parity with the Admin repo's original splitGrammarMarkdown, so future
+  // re-syncs of this file stay a clean diff.
   heading: string | null
   markdown: string
 }

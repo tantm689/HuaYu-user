@@ -38,12 +38,13 @@ describe('GrammarAccordion', () => {
     expect(details[1]).toHaveAttribute('open')
   })
 
-  it('falls back to the heading id for the leading unlabeled section (empty title)', () => {
+  it('shows a fallback summary label ("Ghi chú chung") for a section with an empty title, while still rendering its content', () => {
     const withLeading: GrammarMarkdownSection[] = [
-      { id: 'section-leading', title: '', heading: null, markdown: 'Ghi chú chung.' },
+      { id: 'section-leading', title: '', heading: null, markdown: 'Nội dung mở đầu.' },
       ...sections,
     ]
     render(<GrammarAccordion sections={withLeading} />)
-    expect(screen.getByText('Ghi chú chung.')).toBeInTheDocument()
+    expect(screen.getByText('Ghi chú chung')).toBeInTheDocument() // the fallback summary label
+    expect(screen.getByText('Nội dung mở đầu.')).toBeInTheDocument() // the section's body content
   })
 })
