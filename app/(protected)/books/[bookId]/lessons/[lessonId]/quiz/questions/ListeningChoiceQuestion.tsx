@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Volume2, Check, X } from 'lucide-react'
 import type { ListeningChoicePayload } from '@/lib/db/types'
 import { gradeChoiceAnswer, shuffleWithIndexMap } from '@/lib/quiz/grading'
+import { usePlayAudio } from '@/lib/audio/usePlayAudio'
 
 export default function ListeningChoiceQuestion({
   payload,
@@ -13,6 +14,7 @@ export default function ListeningChoiceQuestion({
   onAnswer: (isCorrect: boolean, userAnswer?: number) => void
 }) {
   const shuffledChoices = useMemo(() => shuffleWithIndexMap(payload.choices), [payload.choices])
+  const playAudio = usePlayAudio()
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
@@ -29,7 +31,7 @@ export default function ListeningChoiceQuestion({
       </p>
       <button
         type="button"
-        onClick={() => new Audio(payload.audioUrl).play()}
+        onClick={() => playAudio(payload.audioUrl)}
         aria-label="Phát âm thanh"
         className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-red text-white shadow-sm transition-colors hover:bg-brand-red-dark"
       >
