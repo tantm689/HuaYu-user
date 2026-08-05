@@ -17,12 +17,14 @@ export interface Lesson {
   status: LessonStatus
   created_at: string
   grammar_markdown: string | null
+  objectives: string[]
 }
 
 // Lesson list rows (e.g. book-level lesson listings) intentionally omit the
-// potentially-large grammar_markdown text column - it's only selected when
-// fetching a single lesson's full detail, not for every row in a list.
-export type LessonListItem = Omit<Lesson, 'grammar_markdown'>
+// potentially-large grammar_markdown text column and objectives - they're
+// only selected when fetching a single lesson's full detail, not for every
+// row in a list.
+export type LessonListItem = Omit<Lesson, 'grammar_markdown' | 'objectives'>
 
 export interface Vocabulary {
   id: string

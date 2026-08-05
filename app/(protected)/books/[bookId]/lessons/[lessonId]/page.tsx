@@ -33,6 +33,29 @@ export default async function LessonPage({
           Bài {lesson.lesson_no}
         </span>
         <h1 className="font-han-title text-2xl font-bold text-ink">{lesson.title_vi}</h1>
+
+        {(lesson.theme || lesson.objectives.length > 0) && (
+          <div className="mt-4 flex flex-col gap-3 border-t border-card-border pt-4">
+            {lesson.theme && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-ink-faint">Chủ đề</p>
+                <p className="mt-1 text-sm font-medium text-ink">{lesson.theme}</p>
+              </div>
+            )}
+            {lesson.objectives.length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-ink-faint">Mục tiêu</p>
+                <ul className="mt-1 flex flex-col gap-1">
+                  {lesson.objectives.map((objective, index) => (
+                    <li key={index} className="text-sm font-medium text-ink">
+                      {objective}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <ul className="flex flex-col gap-3">

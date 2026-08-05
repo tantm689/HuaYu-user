@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { getLesson } from '@/lib/db/getLesson'
 
 describe('getLesson', () => {
-  it('selects grammar_markdown along with the existing lesson fields', async () => {
+  it('selects grammar_markdown and objectives along with the existing lesson fields', async () => {
     const mockLesson = {
       id: 'l1',
       book_id: 'b1',
@@ -13,6 +13,7 @@ describe('getLesson', () => {
       status: 'published',
       created_at: '2026-08-02T00:00:00Z',
       grammar_markdown: '## Ngữ pháp 1: Test\n\nNội dung.',
+      objectives: ['Học cách chào hỏi đơn giản.'],
     }
     const maybeSingle = vi.fn().mockResolvedValue({ data: mockLesson, error: null })
     const eqStatus = vi.fn().mockReturnValue({ maybeSingle })
@@ -23,9 +24,8 @@ describe('getLesson', () => {
     const result = await getLesson(fakeClient as never, 'l1')
 
     expect(result).toEqual(mockLesson)
-    expect(select).toHaveBeenCalledWith(
-      expect.stringContaining('grammar_markdown')
-    )
+    expect(select).toHaveBeenCalledWith(expect.stringContaining('grammar_markdown'))
+    expect(select).toHaveBeenCalledWith(expect.stringContaining('objectives'))
   })
 
   it('returns null when no matching published lesson exists', async () => {
