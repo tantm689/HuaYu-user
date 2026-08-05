@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, Volume2, X } from 'lucide-react'
 import type { DialogueLineForTyping } from '@/lib/db/types'
 import { isExactMatch } from '@/lib/typing/normalize'
-import { upsertTypingProgress } from '@/lib/db/typingProgress'
-import { createBrowserSupabase } from '@/lib/supabase/browser'
 
 function shuffle<T>(items: T[]): T[] {
   const result = [...items]
@@ -21,8 +19,6 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
   const [index, setIndex] = useState(0)
   const [value, setValue] = useState('')
   const [graded, setGraded] = useState<'correct' | 'incorrect' | null>(null)
-  const [streaks, setStreaks] = useState<Record<string, number>>({})
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -78,7 +74,6 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
             setIndex(0)
             setValue('')
             setGraded(null)
-            setSaveError(null)
             setDone(false)
           }}
           className="mx-auto mt-5 rounded-btn bg-brand-red px-7 py-3 font-semibold text-white shadow-sm transition-all hover:bg-brand-red-dark hover:shadow-md active:scale-98"
@@ -92,19 +87,9 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
   const line = shuffledLines[index]
   const isLast = index === shuffledLines.length - 1
 
-  async function grade() {
+  function grade() {
     const isCorrect = isExactMatch(value, line.text_zh)
     setGraded(isCorrect ? 'correct' : 'incorrect')
-    setSaveError(null)
-
-    const prevStreak = streaks[line.id] ?? 0
-    try {
-      const supabase = createBrowserSupabase()
-      await upsertTypingProgress(supabase, 'dialogue_line', line.id, isCorrect, prevStreak)
-      setStreaks((prev) => ({ ...prev, [line.id]: isCorrect ? prevStreak + 1 : 0 }))
-    } catch {
-      setSaveError('Không lưu được kết quả, kiểm tra kết nối mạng.')
-    }
   }
 
   function next() {
@@ -194,8 +179,6 @@ export default function SentenceTypingTab({ lines }: { lines: DialogueLineForTyp
             </span>
           </div>
         )}
-
-        {saveError && <p className="text-xs font-medium text-error-text">{saveError}</p>}
       </div>
 
       {graded === null ? (
