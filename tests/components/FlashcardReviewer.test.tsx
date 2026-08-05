@@ -250,7 +250,7 @@ describe('FlashcardReviewer', () => {
     expect(screen.getByRole('button', { name: /trộn thẻ/i })).toBeInTheDocument()
   })
 
-  it('turning "Trộn thẻ" ON shuffles only the remaining cards behind the one currently showing, leaving the current card in place', () => {
+  it('turning "Trộn thẻ" ON shuffles the whole queue, including the card currently showing', () => {
     const fourCards = [
       cards[0],
       cards[1],
@@ -298,7 +298,9 @@ describe('FlashcardReviewer', () => {
       },
     ]
 
-    // Fisher-Yates with Math.random always 0 deterministically reverses the array.
+    // Fisher-Yates with Math.random always 0: each swap(i, 0) puts card i at
+    // the front just before the next swap overwrites it, so [v1,v2,v3,v4]
+    // deterministically ends up as [v2,v3,v4,v1].
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
 
     render(<FlashcardReviewer cards={fourCards} />)
@@ -307,13 +309,13 @@ describe('FlashcardReviewer', () => {
     openSettings()
     fireEvent.click(screen.getByRole('button', { name: /trộn thẻ/i }))
 
-    // v1 (front card) is untouched by the shuffle.
-    expect(screen.getByText('你好')).toBeInTheDocument()
+    // v2 is now in front - the current card changed, not left in place.
+    expect(screen.getByText('謝謝')).toBeInTheDocument()
 
     randomSpy.mockRestore()
   })
 
-  it('turning "Trộn thẻ" OFF restores the remaining cards to their original order, leaving the current card in place', async () => {
+  it('turning "Trộn thẻ" OFF restores the original order, bringing back the card that was showing when shuffle was turned ON (not whatever the shuffle happens to be showing at the moment of turning OFF)', async () => {
     const fourCards = [
       cards[0],
       cards[1],
@@ -340,18 +342,62 @@ describe('FlashcardReviewer', () => {
       },
     ]
 
+    // Fisher-Yates with Math.random always 0: [v1,v2,v3] deterministically
+    // ends up as [v2,v3,v1] (see the ON test above for the swap trace).
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+
     render(<FlashcardReviewer cards={fourCards} />)
 
     openSettings()
-    fireEvent.click(screen.getByRole('button', { name: /trộn thẻ/i })) // ON: shuffles v2/v3 behind v1
-    fireEvent.click(screen.getByRole('button', { name: /trộn thẻ/i })) // OFF: restores v2, v3 order behind v1
+    fireEvent.click(screen.getByRole('button', { name: /trộn thẻ/i })) // ON: reorders to v2,v3,v1
+    expect(screen.getByText('謝謝')).toBeInTheDocument() // v2 now showing (shuffle jumped away from v1)
 
-    expect(screen.getByText('你好')).toBeInTheDocument() // still the front card, untouched
+    fireEvent.click(screen.getByRole('button', { name: /trộn thẻ/i })) // OFF: restores original order
 
-    // Advance past v1 to confirm the rest is back in original order: v2 then v3.
+    // v1 was the card showing at the moment shuffle was turned ON, so OFF
+    // brings it back to front - NOT v2, which is only where the shuffle
+    // happened to land.
+    expect(screen.getByText('你好')).toBeInTheDocument()
+
+    // Advance past v1 to confirm the rest of the queue is v2, then v3 (original order).
     flipCard()
     fireEvent.click(screen.getByRole('button', { name: /^đã thuộc/i }))
     await waitFor(() => expect(screen.getByText('謝謝')).toBeInTheDocument())
+
+    randomSpy.mockRestore()
+  })
+
+  it('persists the shuffled order and shuffle-on state across a reload, so turning "Trộn thẻ" OFF after remounting still restores the original order', () => {
+    // Fisher-Yates with Math.random always 0: [v1,v2] -> [v2,v1].
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+
+    const { unmount } = render(<FlashcardReviewer cards={cards} storageKey="test-key" />)
+    openSettings()
+    fireEvent.click(screen.getByRole('button', { name: /trộn thẻ/i })) // ON: reorders to v2,v1
+    expect(screen.getByText('謝謝')).toBeInTheDocument()
+
+    const saved = JSON.parse(window.localStorage.getItem('test-key')!)
+    expect(saved.shuffleEnabled).toBe(true)
+    expect(saved.originalRoundOrderIds).toEqual(['v1', 'v2'])
+    expect(saved.roundCardIds).toEqual(['v2', 'v1'])
+
+    // Simulate a page reload: unmount and mount a fresh instance reading the
+    // same storageKey - without persisting shuffleEnabled/originalRoundOrder,
+    // this second instance would have no way to know shuffle was on or what
+    // the original order was, and "Trộn thẻ" OFF would be a no-op.
+    unmount()
+    render(<FlashcardReviewer cards={cards} storageKey="test-key" />)
+    expect(screen.getByText('謝謝')).toBeInTheDocument() // still v2 in front, as saved
+
+    openSettings()
+    fireEvent.click(screen.getByRole('button', { name: /trộn thẻ/i })) // OFF: restores original order
+
+    // v1 was showing when shuffle was turned ON (before the reload), so OFF
+    // brings it back to front, even though the remounted instance's visible
+    // "current card" right before toggling OFF was v2.
+    expect(screen.getByText('你好')).toBeInTheDocument()
+
+    randomSpy.mockRestore()
   })
 
   it('shows "Đặt lại thẻ" on the completion screen, resetting the whole session', async () => {

@@ -7,6 +7,7 @@ import { computeNextReview } from '@/lib/srs/leitner'
 import { recordVocabularyReview } from '@/lib/db/recordVocabularyReview'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import HanziStrokeOrder from '@/components/HanziStrokeOrder'
+import { usePlayAudio } from '@/lib/audio/usePlayAudio'
 
 interface FlashcardCard {
   vocabulary: Vocabulary
@@ -30,6 +31,11 @@ interface FlashcardReviewerProps {
 interface SavedState {
   roundCardIds: string[]
   nextRoundCardIds: string[]
+  /** Chỉ có khi đang bật trộn lúc lưu - thứ tự gốc để "tắt trộn" khôi phục
+   * lại đúng, kể cả sau khi reload trang (nếu không lưu, originalRoundOrder
+   * chỉ tồn tại trong React state và mất hẳn khi component unmount). */
+  shuffleEnabled?: boolean
+  originalRoundOrderIds?: string[]
 }
 
 interface HistoryEntry {
@@ -86,6 +92,7 @@ export default function FlashcardReviewer({
   // tiến trình đã lưu (nếu có) chỉ được áp dụng SAU KHI mount, trong useEffect bên dưới.
   // Đọc localStorage ngay trong lazy initializer sẽ làm client hydrate khác server,
   // gây lỗi "Hydration failed" khi có tiến trình cũ lưu sẵn trên trình duyệt.
+  const playAudio = usePlayAudio()
   const [roundCards, setRoundCards] = useState<FlashcardCard[]>(initialCards)
   const [nextRoundCards, setNextRoundCards] = useState<FlashcardCard[]>([])
   const [roundTotal, setRoundTotal] = useState(initialCards.length)
@@ -140,6 +147,11 @@ export default function FlashcardReviewer({
       setRoundTotal(finalRoundTotal)
       setCorrectCount(shouldSkipToNextRound ? 0 : finalRoundTotal - finalRoundCards.length - finalNextRoundCards.length)
       setWrongCount(shouldSkipToNextRound ? 0 : finalNextRoundCards.length)
+
+      if (!shouldSkipToNextRound && saved.shuffleEnabled && saved.originalRoundOrderIds) {
+        setShuffleEnabled(true)
+        setOriginalRoundOrder(saved.originalRoundOrderIds.map((id) => byId.get(id)!))
+      }
     }
 
     setHasRestored(true)
@@ -171,10 +183,13 @@ export default function FlashcardReviewer({
     const state: SavedState = {
       roundCardIds: roundCards.map((c) => c.vocabulary.id),
       nextRoundCardIds: nextRoundCards.map((c) => c.vocabulary.id),
+      ...(shuffleEnabled && originalRoundOrder
+        ? { shuffleEnabled: true, originalRoundOrderIds: originalRoundOrder.map((c) => c.vocabulary.id) }
+        : {}),
     }
     window.localStorage.setItem(storageKey, JSON.stringify(state))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roundCards, nextRoundCards, allDone, storageKey, hasRestored])
+  }, [roundCards, nextRoundCards, allDone, storageKey, hasRestored, shuffleEnabled, originalRoundOrder])
 
   function resetSession() {
     if (storageKey && typeof window !== 'undefined') {
@@ -214,16 +229,18 @@ export default function FlashcardReviewer({
       const next = !enabled
 
       if (next) {
-        // Bật trộn: thẻ đang xem (đầu hàng đợi) đứng yên, chỉ trộn các thẻ CÒN LẠI phía sau.
+        // Bật trộn: trộn toàn bộ hàng đợi còn lại, kể cả thẻ đang xem.
         setOriginalRoundOrder(roundCards)
-        setRoundCards((prev) => [prev[0], ...shuffleCards(prev.slice(1))])
+        setRoundCards((prev) => shuffleCards(prev))
       } else if (originalRoundOrder) {
-        // Tắt trộn: thẻ đang xem đứng yên, các thẻ còn lại xếp lại đúng thứ tự gốc.
-        const currentRestIds = new Set(roundCards.slice(1).map((c) => c.vocabulary.id))
-        const restInOriginalOrder = originalRoundOrder.filter(
-          (c) => currentRestIds.has(c.vocabulary.id) && c.vocabulary.id !== roundCards[0].vocabulary.id
-        )
-        setRoundCards((prev) => [prev[0], ...restInOriginalOrder])
+        // Tắt trộn: khôi phục đúng thẻ đang xem lúc BẬT trộn lên lại đầu
+        // hàng đợi (originalRoundOrder[0] - không phải thẻ đang hiện lúc
+        // tắt, thẻ đó chỉ là kết quả tạm của việc trộn), các thẻ còn lại
+        // theo đúng thứ tự gốc sau nó - loại bỏ các thẻ đã bị rút khỏi
+        // hàng đợi (đã trả lời đúng) trong lúc đang trộn.
+        const currentIds = new Set(roundCards.map((c) => c.vocabulary.id))
+        const reordered = originalRoundOrder.filter((c) => currentIds.has(c.vocabulary.id))
+        setRoundCards(reordered)
         setOriginalRoundOrder(null)
       }
 
@@ -557,13 +574,13 @@ export default function FlashcardReviewer({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                   e.stopPropagation()
-                  new Audio(vocabulary.audio_url!).play()
+                  playAudio(vocabulary.audio_url!)
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.stopPropagation()
                     e.preventDefault()
-                    new Audio(vocabulary.audio_url!).play()
+                    playAudio(vocabulary.audio_url!)
                   }
                 }}
                 aria-label="Phát âm thanh"
