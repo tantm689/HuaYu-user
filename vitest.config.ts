@@ -7,11 +7,12 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    // Nested git worktrees under .claude/worktrees/ have their own node_modules
-    // (a separate React copy) — without this exclude, Vitest's default file
-    // discovery walks into them and duplicate-loads React, causing spurious
-    // "Invalid hook call" failures in tests that are otherwise correct.
-    exclude: ['**/node_modules/**', '**/.claude/worktrees/**'],
+    // Nested git worktrees under .worktrees/ (this project's convention) or
+    // .claude/worktrees/ have their own node_modules (a separate React copy)
+    // — without this exclude, Vitest's default file discovery walks into
+    // them and duplicate-loads React, causing spurious "Invalid hook call"
+    // failures in tests that are otherwise correct.
+    exclude: ['**/node_modules/**', '**/.worktrees/**', '**/.claude/worktrees/**'],
   },
   resolve: {
     alias: {
