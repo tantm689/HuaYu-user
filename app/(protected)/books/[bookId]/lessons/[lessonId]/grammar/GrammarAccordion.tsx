@@ -33,7 +33,7 @@ export default function GrammarAccordion({ sections }: { sections: GrammarMarkdo
             className="group rounded-card-sm border border-card-border bg-white open:shadow-sm"
             open={index === 0}
           >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-[16px] font-bold text-ink marker:content-none">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-[18px] font-bold text-ink marker:content-none">
               {displayTitle}
               <ChevronDown
                 className="h-4 w-4 shrink-0 text-ink-faint transition-transform group-open:rotate-180"
@@ -41,11 +41,11 @@ export default function GrammarAccordion({ sections }: { sections: GrammarMarkdo
               />
             </summary>
             {/* Phân cấp cỡ chữ theo đúng cấp bậc nội dung: heading "## Ngữ
-                pháp N" (I, II...) đã ở summary 16px; "### A. ..." (đề mục
-                con) 14px; nhãn viết hoa in đậm ("**CHỨC NĂNG**", không phải
-                heading thật - xem lib/gemini/extract.ts) 13px; văn bản
-                thường 12px. */}
-            <div className="prose max-w-none border-t border-card-border px-4 py-4 text-[12px] text-ink prose-headings:text-ink prose-h3:text-[14px] prose-h3:font-bold prose-strong:text-[13px] prose-strong:tracking-wide prose-strong:text-brand-red">
+                pháp N" (I, II...) đã ở summary 18px; "### A. ..." (đề mục
+                con) 16px; nhãn viết hoa in đậm ("**CHỨC NĂNG**", không phải
+                heading thật - xem lib/gemini/extract.ts) 14.5px; văn bản
+                thường 13.5px. */}
+            <div className="prose max-w-none border-t border-card-border px-4 py-4 text-[13.5px] text-ink prose-headings:text-ink prose-h3:text-[16px] prose-h3:font-bold prose-strong:text-[14.5px] prose-strong:tracking-wide prose-strong:text-brand-red">
               <Markdown remarkPlugins={[remarkGfm]}>{section.markdown}</Markdown>
             </div>
           </details>
