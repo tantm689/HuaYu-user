@@ -16,6 +16,7 @@ export interface Lesson {
   theme: string | null
   status: LessonStatus
   created_at: string
+  grammar_markdown: string | null
 }
 
 export interface Vocabulary {
