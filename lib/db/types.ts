@@ -106,7 +106,9 @@ export interface MatchingPayload {
 }
 
 export interface FillBlankPayload {
-  contextSentence: string
+  // One single passage (context sentence + blanked sentence already
+  // combined into one string by the Admin app) - displayed verbatim, no
+  // separate context field to stitch together for rendering.
   sentence: string
   choices: string[]
   correctIndex: number

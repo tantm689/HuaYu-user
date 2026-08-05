@@ -32,8 +32,7 @@ export default function FillBlankQuestion({
         Chọn từ đúng để điền vào chỗ trống
       </p>
       <div className="text-center">
-        <p className="font-han-title text-2xl font-bold text-ink">{payload.contextSentence}</p>
-        <p className="mt-1 font-han-title text-2xl font-bold text-ink">{payload.sentence}</p>
+        <p className="font-han-title text-2xl font-bold text-ink">{payload.sentence}</p>
       </div>
       <div className="flex flex-col gap-2.5">
         {shuffledChoices.map(({ item: choice, originalIndex }, position) => {
