@@ -25,6 +25,7 @@ const dialogue: Dialogue = {
   lines: [
     { id: 'l1', order: 1, speaker_zh: '小明', text_zh: '你好嗎', pinyin: 'nǐ hǎo ma', translation_vi: 'bạn khỏe không', audio_url: 'l1.mp3' },
     { id: 'l2', order: 2, speaker_zh: '小美', text_zh: '我很好', pinyin: 'wǒ hěn hǎo', translation_vi: 'tôi khỏe', audio_url: 'l2.mp3' },
+    { id: 'l3', order: 3, speaker_zh: '小明', text_zh: '謝謝', pinyin: 'xiè xiè', translation_vi: 'cảm ơn', audio_url: null },
   ],
 }
 
@@ -34,17 +35,51 @@ beforeEach(() => {
 })
 
 describe('ListenTab', () => {
-  it('renders every line with its Hanzi, pinyin, and translation', () => {
+  it('renders every line with its Hanzi, pinyin, and translation, and shows a full-name avatar per speaker', () => {
     render(<ListenTab dialogue={dialogue} />)
     expect(screen.getByText('你好嗎')).toBeInTheDocument()
     expect(screen.getByText('nǐ hǎo ma')).toBeInTheDocument()
     expect(screen.getByText('bạn khỏe không')).toBeInTheDocument()
     expect(screen.getByText('我很好')).toBeInTheDocument()
+    // Two distinct speakers, full name shown twice each as an avatar label.
+    expect(screen.getAllByText('小明')).toHaveLength(2) // avatar label appears for l1 and l3
+    expect(screen.getAllByText('小美')).toHaveLength(1)
   })
 
   it('plays a line\'s audio when its card is clicked', () => {
     render(<ListenTab dialogue={dialogue} />)
     fireEvent.click(screen.getByText('你好嗎'))
     expect(playMock).toHaveBeenCalled()
+  })
+
+  it('does not crash and disables play for a line with no audio_url', () => {
+    render(<ListenTab dialogue={dialogue} />)
+    const thirdLineButton = screen.getByText('謝謝').closest('button')
+    expect(thirdLineButton).toBeDisabled()
+    if (thirdLineButton) fireEvent.click(thirdLineButton)
+    expect(playMock).not.toHaveBeenCalled()
+  })
+
+  it('shows pinyin and translation by default, and hides both when the toggle is clicked', () => {
+    render(<ListenTab dialogue={dialogue} />)
+    expect(screen.getByText('nǐ hǎo ma')).toBeInTheDocument()
+    expect(screen.getByText('bạn khỏe không')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Ẩn pinyin.*nghĩa|Hiện pinyin.*nghĩa/i }))
+
+    expect(screen.queryByText('nǐ hǎo ma')).not.toBeInTheDocument()
+    expect(screen.queryByText('bạn khỏe không')).not.toBeInTheDocument()
+    // Hanzi always stays visible regardless of the toggle.
+    expect(screen.getByText('你好嗎')).toBeInTheDocument()
+  })
+
+  it('assigns consistent alternating colors per speaker across repeated appearances', () => {
+    render(<ListenTab dialogue={dialogue} />)
+    const firstAvatar = screen.getAllByText('小明')[0]
+    const thirdAvatar = screen.getAllByText('小明')[1]
+    // Same speaker's two avatar instances must share the same background color class.
+    const firstClasses = firstAvatar.className
+    const thirdClasses = thirdAvatar.className
+    expect(firstClasses).toBe(thirdClasses)
   })
 })
