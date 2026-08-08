@@ -221,6 +221,21 @@ describe('ShadowingScreen', () => {
     expect(screen.getByRole('button', { name: /Phát lại ghi âm/i })).toBeEnabled()
   })
 
+  it('pauses in-flight sample playback when recording starts during continuous mode', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    fireEvent.click(screen.getByRole('switch', { name: /Tự động dừng/i }))
+
+    fireEvent.click(screen.getByRole('button', { name: /^Nghe mẫu$/i }))
+    expect(playMock).toHaveBeenCalled()
+    pauseMock.mockClear()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+
+    expect(pauseMock).toHaveBeenCalled()
+  })
+
   it('still grades normally when auto-pause is ON (unchanged default behavior)', async () => {
     render(<ShadowingScreen dialogue={dialogue} />)
     // Toggle defaults to ON - do not click it.

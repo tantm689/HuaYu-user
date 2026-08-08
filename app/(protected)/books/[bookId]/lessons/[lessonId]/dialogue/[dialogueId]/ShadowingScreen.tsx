@@ -92,6 +92,8 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      sampleAudioRef.current?.pause()
+      setIsPlaying(false)
       setPermissionError(false)
       setResult(null)
       transcriptRef.current = ''
