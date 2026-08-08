@@ -10,10 +10,26 @@ const dialogue: Dialogue = {
   kind: 'dialogue',
   audio_url: null,
   lines: [
-    { id: 'l1', order: 1, speaker_zh: null, text_zh: '你好嗎', pinyin: 'nǐ hǎo ma', translation_vi: 'bạn khỏe không', audio_url: null },
-    { id: 'l2', order: 2, speaker_zh: null, text_zh: '我很好', pinyin: 'wǒ hěn hǎo', translation_vi: 'tôi khỏe', audio_url: null },
+    { id: 'l1', order: 1, speaker_zh: null, text_zh: '你好嗎', pinyin: 'nǐ hǎo ma', translation_vi: 'bạn khỏe không', audio_url: 'l1.mp3' },
+    { id: 'l2', order: 2, speaker_zh: null, text_zh: '我很好', pinyin: 'wǒ hěn hǎo', translation_vi: 'tôi khỏe', audio_url: 'l2.mp3' },
   ],
 }
+
+// --- Audio mock ---
+const playMock = vi.fn().mockResolvedValue(undefined)
+const pauseMock = vi.fn()
+const audioInstances: MockAudio[] = []
+
+class MockAudio {
+  currentTime = 0
+  onended: (() => void) | null = null
+  constructor(public src: string) {
+    audioInstances.push(this)
+  }
+  play = playMock
+  pause = pauseMock
+}
+vi.stubGlobal('Audio', MockAudio)
 
 // --- MediaRecorder mock ---
 let recorderInstances: any[] = []
@@ -61,6 +77,9 @@ beforeEach(() => {
   recorderInstances = []
   lastRecognition = null
   getUserMediaMock.mockClear()
+  audioInstances.length = 0
+  playMock.mockClear()
+  pauseMock.mockClear()
 })
 
 describe('ShadowingScreen', () => {
@@ -142,5 +161,81 @@ describe('ShadowingScreen', () => {
       lastRecognition.onend()
     })
     expect(screen.getByText(/không nghe rõ/i)).toBeInTheDocument()
+  })
+
+  it('shows the "Tự động dừng" toggle, defaulting to ON', () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    const toggle = screen.getByRole('switch', { name: /Tự động dừng/i })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('plays the current line\'s audio when the play button is clicked', () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Nghe mẫu$/i }))
+    expect(playMock).toHaveBeenCalled()
+    expect(audioInstances[0].src).toBe('l1.mp3')
+  })
+
+  it('does not advance to the next line when auto-pause is ON and playback ends', () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Nghe mẫu$/i }))
+    act(() => {
+      audioInstances[0].onended?.()
+    })
+    expect(screen.getByRole('heading', { name: '你好嗎' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '我很好' })).not.toBeInTheDocument()
+  })
+
+  it('advances to the next line and keeps playing when auto-pause is OFF and playback ends', () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    fireEvent.click(screen.getByRole('switch', { name: /Tự động dừng/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Nghe mẫu$/i }))
+    act(() => {
+      audioInstances[0].onended?.()
+    })
+    expect(screen.getByText('我很好')).toBeInTheDocument()
+    expect(audioInstances[1]?.src).toBe('l2.mp3')
+  })
+
+  it('does not grade or show a result when auto-pause is OFF, even after recording stops with a transcript', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    fireEvent.click(screen.getByRole('switch', { name: /Tự động dừng/i }))
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+    act(() => {
+      lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
+    })
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+    act(() => {
+      lastRecognition.onend()
+    })
+
+    expect(screen.queryByText(/Phát âm chính xác/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Chưa chính xác/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/không nghe rõ/i)).not.toBeInTheDocument()
+    // Recording itself still works: replay button is enabled once stopped.
+    expect(screen.getByRole('button', { name: /Phát lại ghi âm/i })).toBeEnabled()
+  })
+
+  it('still grades normally when auto-pause is ON (unchanged default behavior)', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    // Toggle defaults to ON - do not click it.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+    act(() => {
+      lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
+    })
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+    act(() => {
+      lastRecognition.onend()
+    })
+    expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
   })
 })
