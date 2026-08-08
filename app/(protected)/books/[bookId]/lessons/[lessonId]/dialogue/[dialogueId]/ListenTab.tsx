@@ -59,13 +59,15 @@ export default function ListenTab({ dialogue }: { dialogue: Dialogue }) {
 
         return (
           <div key={line.id} className="flex items-start gap-3">
-            {line.speaker_zh && color && (
+            {line.speaker_zh && color ? (
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-bold leading-none ${color.bg} ${color.text}`}
                 title={line.speaker_zh}
               >
                 {line.speaker_zh}
               </span>
+            ) : (
+              <span className="h-10 w-10 shrink-0" aria-hidden="true" />
             )}
 
             <button

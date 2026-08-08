@@ -26,6 +26,7 @@ const dialogue: Dialogue = {
     { id: 'l1', order: 1, speaker_zh: '小明', text_zh: '你好嗎', pinyin: 'nǐ hǎo ma', translation_vi: 'bạn khỏe không', audio_url: 'l1.mp3' },
     { id: 'l2', order: 2, speaker_zh: '小美', text_zh: '我很好', pinyin: 'wǒ hěn hǎo', translation_vi: 'tôi khỏe', audio_url: 'l2.mp3' },
     { id: 'l3', order: 3, speaker_zh: '小明', text_zh: '謝謝', pinyin: 'xiè xiè', translation_vi: 'cảm ơn', audio_url: null },
+    { id: 'l4', order: 4, speaker_zh: null, text_zh: '（旁白）', pinyin: null, translation_vi: null, audio_url: null },
   ],
 }
 
@@ -81,5 +82,29 @@ describe('ListenTab', () => {
     const firstClasses = firstAvatar.className
     const thirdClasses = thirdAvatar.className
     expect(firstClasses).toBe(thirdClasses)
+  })
+
+  it('reserves the same avatar-slot space for lines with no speaker_zh, keeping bubble left edges aligned', () => {
+    render(<ListenTab dialogue={dialogue} />)
+
+    // Sanity check: the speaker-less line still renders its text and isn't skipped.
+    const noSpeakerText = screen.getByText('（旁白）')
+    expect(noSpeakerText).toBeInTheDocument()
+
+    // The row's outer flex container's first child should be a same-sized (w-10) slot
+    // regardless of whether the line has a speaker_zh, so bubbles stay left-aligned.
+    const noSpeakerRow = noSpeakerText.closest('button')?.parentElement
+    const noSpeakerFirstChild = noSpeakerRow?.firstElementChild
+    expect(noSpeakerFirstChild).not.toBeNull()
+    expect(noSpeakerFirstChild?.className).toContain('w-10')
+    expect(noSpeakerFirstChild).toHaveAttribute('aria-hidden', 'true')
+
+    const withSpeakerText = screen.getByText('你好嗎')
+    const withSpeakerRow = withSpeakerText.closest('button')?.parentElement
+    const withSpeakerFirstChild = withSpeakerRow?.firstElementChild
+    expect(withSpeakerFirstChild?.className).toContain('w-10')
+
+    // Both rows' outer containers have a structurally symmetric first child (a tag name match).
+    expect(noSpeakerFirstChild?.tagName).toBe(withSpeakerFirstChild?.tagName)
   })
 })
