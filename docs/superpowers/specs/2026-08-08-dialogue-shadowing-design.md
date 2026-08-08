@@ -95,3 +95,29 @@ Cấu trúc trên xuống:
 - Không thay đổi cấu trúc picker hay routing đã có.
 - Không thêm tab con trong Shadowing.
 - Không đổi schema DB.
+
+## Addendum (2026-08-08): Audio player mẫu + 2 chế độ phát
+
+Bản đầu tiên merge vào `main` (commit `95c5386`) **chưa có audio player mẫu** trong `ShadowingScreen` — chỉ có sentence card + 2 nút ghi âm. Người dùng phản hồi sau khi dùng thử: cần audio phát câu mẫu, với 2 chế độ phát (giống toggle "Tự động dừng" của `ListenTab`/easy-chinese) thay vì chỉ đọc pinyin tĩnh.
+
+### Yêu cầu bổ sung
+
+1. Thêm audio player mẫu vào đầu `ShadowingScreen` (play/pause câu hiện tại, không cần thanh tiến trình phức tạp — chỉ cần phát/dừng câu hiện tại).
+2. Toggle **"Tự động dừng"** (mặc định bật), ăn theo đúng hành vi `easy-chinese`'s `isAutoPause`:
+   - **Bật** (mặc định): audio phát xong câu hiện tại thì dừng lại. Ghi âm/Phát lại ghi âm hoạt động như hiện tại — **có chấm điểm tự động** sau khi dừng ghi (không đổi behavior đã merge).
+   - **Tắt**: audio tự động phát nối tiếp hết các câu trong bài, không dừng giữa chừng (giống nghe 1 file audio liên tục). Trong chế độ này:
+     - Vẫn cho phép bấm "Ghi âm" bất kỳ lúc nào để ghi lại giọng đọc theo, và "Phát lại ghi âm" để tự nghe lại.
+     - **Không chấm điểm** (không gọi `gradeSyllables`, không hiển thị khối kết quả) — vì không có ranh giới rõ ràng để biết người dùng đang luyện câu nào tại thời điểm ghi âm. Có thể hiện một dòng chú thích nhỏ giải thích lý do (vd: "Bật 'Tự động dừng' để được chấm điểm phát âm theo từng câu").
+
+### Vì sao không chấm điểm khi phát liên tục
+
+Đã cân nhắc 2 hướng: (a) tự động pause audio khi bấm Ghi âm để chấm theo đúng câu đang phát, (b) chấm theo câu đang highlight tại thời điểm bấm nhưng không pause. Người dùng quyết định **đơn giản hóa**: tách bạch theo chế độ — muốn chấm điểm thì bật "Tự động dừng" (quay về luồng đã có), phát liên tục chỉ dùng để luyện nghe + tự ghi âm nghe lại, không chấm. Tránh được toàn bộ độ phức tạp của việc đồng bộ audio timestamp với recording window.
+
+### Thay đổi kiến trúc
+
+`ShadowingScreen.tsx` cần thêm:
+- State: `isAutoPause` (boolean, mặc định `true`), `isPlaying` (boolean).
+- `<audio>` ref phát `currentLine.audio_url`, `onended` handler: nếu `isAutoPause` thì dừng (không làm gì thêm, người dùng tự bấm câu tiếp hoặc Play lại); nếu không thì tự động `setCurrentIndex` sang câu kế tiếp và tiếp tục phát (auto-advance, giống `easy-chinese`'s `handleAudioEnded`).
+- Nút Play/Pause nhỏ gọn phía trên sentence card, cùng hàng với toggle "Tự động dừng".
+- Grading UI (khối kết quả + 2 nút ghi âm hiện có) chỉ hiển thị/kích hoạt đầy đủ khi `isAutoPause === true`; khi `false`, nút Ghi âm/Phát lại ghi âm vẫn hoạt động nhưng bỏ qua bước `gradeSyllables`/`setResult`.
+- Dòng nào không có `audio_url` thì nút Play tự disable (đã có pattern này ở `ListenTab`).
