@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Mic, Pause, Play, Square } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Mic, Pause, Play, RotateCcw, Square } from 'lucide-react'
 import type { Dialogue } from '@/lib/db/types'
 import { gradeSyllables, type GradeResult } from '@/lib/shadowing/pinyinGrading'
 import { useSpeechRecognition } from '@/lib/shadowing/useSpeechRecognition'
@@ -144,6 +144,10 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
     playLineAt(index)
   }
 
+  function resetAndPlay() {
+    goToLine(0)
+  }
+
   function handleSeek(e: React.ChangeEvent<HTMLInputElement>) {
     const targetGlobalTime = Number(e.target.value)
     let accumulated = 0
@@ -274,20 +278,6 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
 
       <div className="flex flex-col gap-3 rounded-card-sm border border-card-border bg-white px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => (currentLine.audio_url ? (isPlaying ? pauseSample() : playSample()) : undefined)}
-            disabled={!currentLine.audio_url}
-            aria-label={isPlaying ? 'Tạm dừng' : 'Nghe mẫu'}
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-pill transition-all ${
-              currentLine.audio_url
-                ? 'bg-brand-red text-white hover:bg-brand-red-dark'
-                : 'cursor-not-allowed bg-card-border text-ink-faint'
-            }`}
-          >
-            {isPlaying ? <Pause className="h-4 w-4" strokeWidth={2.5} /> : <Play className="h-4 w-4" strokeWidth={2.5} />}
-          </button>
-
           <span className="w-[76px] shrink-0 text-sm font-semibold tabular-nums text-ink-faint">
             {formatTime(globalCurrentTime)} / {formatTime(totalDuration)}
           </span>
@@ -312,26 +302,50 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-ink-faint">Tự động dừng</span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => goToLine(currentIndex - 1)}
               disabled={currentIndex === 0}
               aria-label="Câu trước"
-              className="text-ink-faint transition-colors hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-ink-faint"
+              className="flex h-9 w-9 items-center justify-center rounded-pill bg-white text-ink-faint shadow-sm ring-1 ring-card-border transition-all hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-ink-faint"
             >
-              <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+              <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+            <button
+              type="button"
+              onClick={resetAndPlay}
+              aria-label="Phát lại từ đầu"
+              className="flex h-9 w-9 items-center justify-center rounded-pill bg-white text-ink-faint shadow-sm ring-1 ring-card-border transition-all hover:text-brand-red"
+            >
+              <RotateCcw className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+            <button
+              type="button"
+              onClick={() => (currentLine.audio_url ? (isPlaying ? pauseSample() : playSample()) : undefined)}
+              disabled={!currentLine.audio_url}
+              aria-label={isPlaying ? 'Tạm dừng' : 'Nghe mẫu'}
+              className={`flex h-9 w-9 items-center justify-center rounded-pill transition-all ${
+                currentLine.audio_url
+                  ? 'bg-brand-red text-white hover:bg-brand-red-dark'
+                  : 'cursor-not-allowed bg-card-border text-ink-faint'
+              }`}
+            >
+              {isPlaying ? <Pause className="h-4 w-4" strokeWidth={2.5} /> : <Play className="h-4 w-4" strokeWidth={2.5} />}
             </button>
             <button
               type="button"
               onClick={() => goToLine(currentIndex + 1)}
               disabled={currentIndex === dialogue.lines.length - 1}
               aria-label="Câu sau"
-              className="text-ink-faint transition-colors hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-ink-faint"
+              className="flex h-9 w-9 items-center justify-center rounded-pill bg-white text-ink-faint shadow-sm ring-1 ring-card-border transition-all hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-ink-faint"
             >
-              <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
+              <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
             </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-ink-faint">Tự động dừng</span>
             <button
               type="button"
               role="switch"

@@ -368,4 +368,38 @@ describe('ShadowingScreen', () => {
     expect(timeText()).toMatch(/^0:10 \//)
     expect(timeText()).not.toMatch(/^0:13 \//)
   })
+
+  it('shows a Reset button alongside prev/next and the auto-pause toggle', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(screen.getByRole('button', { name: /Phát lại từ đầu/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Câu trước/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Câu sau/i })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: /Tự động dừng/i })).toBeInTheDocument()
+  })
+
+  it('jumps to the first line and plays it when Reset is clicked from a later line', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Câu sau/i }))
+    expect(screen.getByText('我很好')).toBeInTheDocument()
+    playMock.mockClear()
+
+    fireEvent.click(screen.getByRole('button', { name: /Phát lại từ đầu/i }))
+    expect(screen.getByText('你好嗎')).toBeInTheDocument()
+    expect(playMock).toHaveBeenCalled()
+  })
+
+  it('keeps Reset enabled on the first line (unlike "Câu trước", which disables there)', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(screen.getByRole('button', { name: /Câu trước/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Phát lại từ đầu/i })).toBeEnabled()
+  })
 })
