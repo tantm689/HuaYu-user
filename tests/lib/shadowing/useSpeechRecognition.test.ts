@@ -58,4 +58,31 @@ describe('useSpeechRecognition', () => {
     act(() => result.current.stop())
     expect(lastInstance?.stop).toHaveBeenCalled()
   })
+
+  it('invokes onEnd when recognition.onend fires, after onresult', () => {
+    const onEnd = vi.fn()
+    const onResult = vi.fn()
+    const { result } = renderHook(() => useSpeechRecognition(onResult, onEnd))
+    act(() => result.current.start())
+    expect(onEnd).not.toHaveBeenCalled()
+    act(() => {
+      lastInstance?.onresult?.({ results: [[{ transcript: '你好' }]] })
+    })
+    expect(onEnd).not.toHaveBeenCalled()
+    act(() => {
+      lastInstance?.onend?.()
+    })
+    expect(onEnd).toHaveBeenCalledTimes(1)
+  })
+
+  it('invokes onEnd even when recognition ends without a result (e.g. no-speech error)', () => {
+    const onEnd = vi.fn()
+    const { result } = renderHook(() => useSpeechRecognition(() => {}, onEnd))
+    act(() => result.current.start())
+    act(() => {
+      lastInstance?.onerror?.({ error: 'no-speech' })
+      lastInstance?.onend?.()
+    })
+    expect(onEnd).toHaveBeenCalledTimes(1)
+  })
 })

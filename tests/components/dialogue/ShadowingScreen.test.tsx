@@ -90,9 +90,57 @@ describe('ShadowingScreen', () => {
       lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
     })
     act(() => {
+      lastRecognition.onend()
+    })
+    act(() => {
       fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
     })
     expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Phát lại ghi âm/i })).toBeEnabled()
+  })
+
+  it('grades correctly even when SpeechRecognition settles AFTER the user clicks stop (realistic race)', async () => {
+    // In real Chrome/Edge, onresult/onend often arrive after the user has
+    // already clicked "stop" - MediaRecorder.onstop must NOT grade using a
+    // stale/empty transcript; grading must wait for recognition's onend.
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+
+    // User clicks stop first - MediaRecorder.onstop fires immediately.
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+
+    // No result yet: grading must not have produced a stale/incorrect verdict.
+    expect(screen.queryByText(/Chưa chính xác/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Phát âm chính xác/i)).not.toBeInTheDocument()
+
+    // SpeechRecognition catches up asynchronously, after the stop click.
+    act(() => {
+      lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
+    })
+    act(() => {
+      lastRecognition.onend()
+    })
+
+    expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Phát lại ghi âm/i })).toBeEnabled()
+  })
+
+  it('grades an empty transcript (not a hang) when recognition ends without any result', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+    // Recognition ends with no result at all (e.g. no-speech error).
+    act(() => {
+      lastRecognition.onend()
+    })
+    expect(screen.getByText(/không nghe rõ/i)).toBeInTheDocument()
   })
 })

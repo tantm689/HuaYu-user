@@ -20,9 +20,21 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   const transcriptRef = useRef<string>('')
   const recordedAudioRef = useRef<HTMLAudioElement | null>(null)
 
-  const speech = useSpeechRecognition((transcript) => {
-    transcriptRef.current = transcript
-  })
+  // Grading must wait for SpeechRecognition to genuinely finish, not for
+  // MediaRecorder.onstop (which fires the instant the user clicks "stop").
+  // `onresult` is asynchronous and often arrives after that click in real
+  // browsers, so grading here - triggered by `onend`, which the Web Speech
+  // API spec guarantees always fires after `onresult`/`onerror` - is what
+  // guarantees we grade the final, settled transcript instead of a stale
+  // or empty one.
+  const speech = useSpeechRecognition(
+    (transcript) => {
+      transcriptRef.current = transcript
+    },
+    () => {
+      setResult(gradeSyllables(currentLine.text_zh, transcriptRef.current))
+    }
+  )
 
   async function startRecording() {
     try {
@@ -43,9 +55,6 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
         setRecordedUrl(URL.createObjectURL(blob))
         stream.getTracks().forEach((track) => track.stop())
-
-        const graded = gradeSyllables(currentLine.text_zh, transcriptRef.current)
-        setResult(graded)
       }
 
       // Start together: SpeechRecognition needs a live microphone stream,

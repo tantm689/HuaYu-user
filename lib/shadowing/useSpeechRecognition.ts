@@ -10,14 +10,27 @@ export interface UseSpeechRecognitionResult {
 }
 
 // Stale-closure hazard (hit twice in the prior implementation attempt):
-// onResult is captured by `recognition.onresult` at the time `start()` runs,
-// so it must always read the LATEST callback, not the one from whichever
-// render created the recognition instance. A ref sidesteps this.
+// onResult/onEnd are captured by the recognition instance's event handlers
+// at the time `start()` runs, so they must always read the LATEST callback,
+// not the one from whichever render created the recognition instance. Refs
+// sidestep this.
+//
+// `onEnd` fires from `recognition.onend`, which the Web Speech API spec
+// guarantees always runs (after `onresult` or `onerror`, whichever the
+// browser reaches first). Callers should defer any grading/consumption of
+// the recognized transcript until `onEnd` fires, rather than assuming
+// `onResult` has already run by the time they need the transcript -
+// `onresult` is asynchronous and often arrives after the user has already
+// clicked "stop" elsewhere in the UI.
 export function useSpeechRecognition(
-  onResult: (transcript: string) => void
+  onResult: (transcript: string) => void,
+  onEnd?: () => void
 ): UseSpeechRecognitionResult {
   const onResultRef = useRef(onResult)
   onResultRef.current = onResult
+
+  const onEndRef = useRef(onEnd)
+  onEndRef.current = onEnd
 
   const recognitionRef = useRef<any>(null)
   const [isListening, setIsListening] = useState(false)
@@ -49,6 +62,7 @@ export function useSpeechRecognition(
 
     recognition.onend = () => {
       setIsListening(false)
+      onEndRef.current?.()
     }
 
     setIsListening(true)
