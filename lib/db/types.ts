@@ -121,3 +121,23 @@ export interface QuizQuestion {
   order: number
   payload: QuizQuestionPayload
 }
+
+export type DialogueKind = 'dialogue' | 'passage'
+
+export interface DialogueLine {
+  id: string
+  order: number
+  speaker_zh: string | null
+  text_zh: string
+  pinyin: string | null
+  translation_vi: string | null
+  audio_url: string | null
+}
+
+export interface Dialogue {
+  id: string
+  order: number
+  kind: DialogueKind
+  audio_url: string | null
+  lines: DialogueLine[]
+}
