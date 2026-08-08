@@ -1,13 +1,5 @@
-import { BookOpenText, Mic } from 'lucide-react'
+import { BookOpenText } from 'lucide-react'
 import GuideAccordionItem from '@/components/GuideAccordionItem'
-
-const upcoming = [
-  {
-    icon: Mic,
-    title: 'Hội thoại (Shadowing)',
-    description: 'Luyện nghe và nói theo hội thoại trong bài, chấm điểm phát âm tự động.',
-  },
-]
 
 export default function GuidePage() {
   return (
@@ -134,6 +126,78 @@ export default function GuidePage() {
       </section>
 
       <section className="mb-5">
+        <h2 className="mb-3 px-1 font-han-title text-xl font-bold text-ink">Hội thoại</h2>
+
+        <div className="flex flex-col gap-2.5">
+          <GuideAccordionItem title="2 tab: Nghe hội thoại & Shadowing" defaultOpen>
+            <p>
+              Vào 1 bài học → tab &quot;Hội thoại&quot; → chọn bài hội thoại (hoặc đoạn văn, với sách từ quyển 2)
+              → 2 tab nhỏ bên trong:
+            </p>
+            <ul className="mt-2 list-disc pl-5">
+              <li>
+                <strong>Nghe hội thoại</strong> — mỗi câu hiện dạng bong bóng tin nhắn, avatar tròn theo từng
+                người nói. Bấm vào 1 câu để nghe phát âm chuẩn của câu đó. Nút &quot;Ẩn/Hiện pinyin &amp;
+                nghĩa&quot; ở đầu trang giúp ẩn cả pinyin lẫn nghĩa tiếng Việt cùng lúc cho toàn bộ danh sách —
+                dùng để tự luyện nghe hiểu chỉ bằng chữ Hán trước khi đối chiếu lại.
+              </li>
+              <li>
+                <strong>Shadowing</strong> — luyện nói theo, có ghi âm và chấm điểm phát âm tự động.
+              </li>
+            </ul>
+          </GuideAccordionItem>
+
+          <GuideAccordionItem title="Cách phát audio mẫu ở Shadowing">
+            <p>
+              Nhóm 4 nút tròn — <strong>Câu trước</strong>, <strong>Phát lại từ đầu</strong> (quay về câu 1 và tự
+              phát), <strong>Play/Tạm dừng</strong>, <strong>Câu sau</strong> — cùng với công tắc{' '}
+              <strong>&quot;Tự động dừng&quot;</strong> nằm chung 1 hàng.
+            </p>
+            <ul className="mt-2 list-disc pl-5">
+              <li>
+                <strong>Bật &quot;Tự động dừng&quot;</strong> (mặc định): audio phát hết 1 câu thì tự dừng lại,
+                chờ bạn ghi âm luyện theo câu đó rồi mới qua câu tiếp — có chấm điểm.
+              </li>
+              <li>
+                <strong>Tắt &quot;Tự động dừng&quot;</strong>: audio phát nối tiếp hết cả bài không dừng, giống
+                nghe 1 bản ghi liền mạch. Vẫn ghi âm và nghe lại giọng mình được, nhưng{' '}
+                <strong>không chấm điểm</strong> vì không xác định được bạn đang luyện đúng câu nào.
+              </li>
+            </ul>
+            <p className="mt-2">
+              Thanh thời gian phía trên tính gộp cho cả bài (không phải riêng từng câu) và kéo được để nhảy tới
+              bất kỳ câu nào; nút <strong>1x</strong> đổi tốc độ phát lần lượt 1x → 1.25x → 0.75x → 1x.
+            </p>
+          </GuideAccordionItem>
+
+          <GuideAccordionItem title="Cách chấm điểm phát âm">
+            <p>
+              Bấm <strong>&quot;Ghi âm&quot;</strong> → đọc theo câu mẫu → bấm <strong>&quot;Dừng ghi âm&quot;</strong>{' '}
+              → kết quả hiện ra tự động, không cần bấm thêm nút nào khác. Bấm{' '}
+              <strong>&quot;Phát lại ghi âm&quot;</strong> để nghe lại chính giọng mình vừa ghi.
+            </p>
+            <p className="mt-2">
+              Chấm dựa theo <strong>pinyin không dấu</strong> ở từng âm tiết, không so khớp mặt chữ hay dấu
+              thanh tuyệt đối — nên đọc đúng âm nhưng chọn nhầm chữ đồng âm (ví dụ 他/她 đều đọc &quot;tā&quot;)
+              vẫn được tính đúng. 3 mức kết quả:
+            </p>
+            <ul className="mt-2 list-disc pl-5">
+              <li>
+                <strong className="text-success-text">Phát âm chính xác</strong> — khớp hoàn toàn.
+              </li>
+              <li>
+                <strong className="text-ink-gold-text">Gần đúng, cố lên</strong> — phần lớn âm tiết khớp, sai
+                một vài âm hoặc thanh điệu.
+              </li>
+              <li>
+                <strong className="text-error-text">Chưa chính xác</strong> — sai nhiều âm tiết, nên đọc lại.
+              </li>
+            </ul>
+          </GuideAccordionItem>
+        </div>
+      </section>
+
+      <section className="mb-5">
         <h2 className="mb-3 px-1 font-han-title text-xl font-bold text-ink">Ngữ pháp</h2>
 
         <div className="flex flex-col gap-2.5">
@@ -239,30 +303,6 @@ export default function GuidePage() {
         </div>
       </section>
 
-      <section className="rounded-card border border-card-border bg-white p-6 shadow-sm">
-        <h2 className="font-han-title text-xl font-bold text-ink">Các tính năng khác</h2>
-        <p className="mt-1 text-sm font-medium text-ink-faint">Đang được xây dựng, sẽ có hướng dẫn khi ra mắt.</p>
-
-        <ul className="mt-4 flex flex-col gap-3">
-          {upcoming.map((item) => {
-            const Icon = item.icon
-            return (
-              <li
-                key={item.title}
-                className="flex items-center gap-4 rounded-card-sm border border-card-border bg-white px-5 py-4 opacity-60"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-red">
-                  <Icon className="h-5 w-5" strokeWidth={2} />
-                </span>
-                <span className="flex-1">
-                  <span className="block font-bold text-ink">{item.title}</span>
-                  <span className="text-sm font-medium text-ink-faint">{item.description}</span>
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
     </div>
   )
 }
