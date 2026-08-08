@@ -27,6 +27,7 @@ class MockAudio {
   onended: (() => void) | null = null
   onloadedmetadata: (() => void) | null = null
   onerror: (() => void) | null = null
+  ontimeupdate: (() => void) | null = null
   constructor(public src: string) {
     audioInstances.push(this)
     // Simulate metadata loading synchronously so tests don't need extra
@@ -336,5 +337,35 @@ describe('ShadowingScreen', () => {
     expect(screen.getByText('我很好')).toBeInTheDocument()
     // No crash, and the play/pause button should be disabled on this line.
     expect(screen.getByRole('button', { name: /Nghe mẫu/i })).toBeDisabled()
+  })
+
+  it('resets audioProgress (cumulative time shows 0 progress into the new line) when a sidebar line is selected mid-playback', async () => {
+    const { container } = render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    // Durations preload to 5s per line (MockAudio.duration = 5), so total = 15.
+    const timeText = () => container.querySelector('.tabular-nums')?.textContent
+
+    // Play the current (first) line and advance its progress partway.
+    // (Preloading already created 3 probe Audio instances for durations;
+    // the one created by play is the last instance in the array.)
+    fireEvent.click(screen.getByRole('button', { name: /^Nghe mẫu$/i }))
+    const playingAudio = audioInstances[audioInstances.length - 1]
+    act(() => {
+      playingAudio.currentTime = 3
+      playingAudio.ontimeupdate?.()
+    })
+    // Cumulative time = durations.slice(0, 0).sum() + audioProgress = 0 + 3 = 3.
+    expect(timeText()).toMatch(/^0:03 \//)
+
+    // Click a non-current sidebar line ("謝謝", index 2).
+    fireEvent.click(screen.getByRole('button', { name: '謝謝' }))
+    expect(screen.getByText('謝謝')).toBeInTheDocument()
+
+    // Cumulative time should now be durations[0] + durations[1] + 0 = 10,
+    // NOT 10 + the stale audioProgress of 3 (= 13).
+    expect(timeText()).toMatch(/^0:10 \//)
+    expect(timeText()).not.toMatch(/^0:13 \//)
   })
 })

@@ -261,6 +261,7 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
     setCurrentIndex(index)
     setResult(null)
     setRecordedUrl(null)
+    setAudioProgress(0)
   }
 
   return (
