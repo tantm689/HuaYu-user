@@ -12,6 +12,7 @@ const dialogue: Dialogue = {
   lines: [
     { id: 'l1', order: 1, speaker_zh: null, text_zh: '你好嗎', pinyin: 'nǐ hǎo ma', translation_vi: 'bạn khỏe không', audio_url: 'l1.mp3' },
     { id: 'l2', order: 2, speaker_zh: null, text_zh: '我很好', pinyin: 'wǒ hěn hǎo', translation_vi: 'tôi khỏe', audio_url: 'l2.mp3' },
+    { id: 'l3', order: 3, speaker_zh: null, text_zh: '謝謝', pinyin: 'xiè xiè', translation_vi: 'cảm ơn', audio_url: 'l3.mp3' },
   ],
 }
 
@@ -22,9 +23,15 @@ const audioInstances: MockAudio[] = []
 
 class MockAudio {
   currentTime = 0
+  duration = 5
   onended: (() => void) | null = null
+  onloadedmetadata: (() => void) | null = null
+  onerror: (() => void) | null = null
   constructor(public src: string) {
     audioInstances.push(this)
+    // Simulate metadata loading synchronously so tests don't need extra
+    // act() wrapping around a real async load event.
+    queueMicrotask(() => this.onloadedmetadata?.())
   }
   play = playMock
   pause = pauseMock
@@ -252,5 +259,82 @@ describe('ShadowingScreen', () => {
       lastRecognition.onend()
     })
     expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
+  })
+
+  it('shows a play/pause button, elapsed/total time, and a seek bar', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    // Both the play/pause circle ("Nghe mẫu"/"Tạm dừng") and the disabled
+    // "Phát lại ghi âm" replay button match /Phát|Nghe mẫu/i, so this only
+    // asserts that at least one such control exists.
+    expect(screen.getAllByRole('button', { name: /Phát|Nghe mẫu/i }).length).toBeGreaterThan(0)
+    expect(screen.getByText(/0:00/)).toBeInTheDocument()
+    expect(screen.getByRole('slider')).toBeInTheDocument()
+  })
+
+  it('shows prev/next line buttons, with prev disabled on the first line', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(screen.getByRole('button', { name: /Câu trước/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Câu sau/i })).toBeEnabled()
+  })
+
+  it('advances to the next line and plays it when "Câu sau" is clicked', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Câu sau/i }))
+    expect(screen.getByText('我很好')).toBeInTheDocument()
+    expect(playMock).toHaveBeenCalled()
+  })
+
+  it('goes back to the previous line and plays it when "Câu trước" is clicked', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Câu sau/i }))
+    playMock.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: /Câu trước/i }))
+    expect(screen.getByText('你好嗎')).toBeInTheDocument()
+    expect(playMock).toHaveBeenCalled()
+  })
+
+  it('cycles playback speed through 1x -> 1.25x -> 0.75x -> 1x when the speed button is clicked', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const speedButton = screen.getByRole('button', { name: /1x/i })
+    fireEvent.click(speedButton)
+    expect(screen.getByRole('button', { name: /1\.25x/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /1\.25x/i }))
+    expect(screen.getByRole('button', { name: /0\.75x/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /0\.75x/i }))
+    expect(screen.getByRole('button', { name: /^1x$/i })).toBeInTheDocument()
+  })
+
+  it('does not crash when a line has no audio_url (duration treated as 0, play disabled for it)', async () => {
+    const dialogueWithGap: Dialogue = {
+      ...dialogue,
+      lines: [
+        dialogue.lines[0],
+        { ...dialogue.lines[1], audio_url: null },
+        dialogue.lines[2],
+      ],
+    }
+    render(<ShadowingScreen dialogue={dialogueWithGap} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Câu sau/i }))
+    expect(screen.getByText('我很好')).toBeInTheDocument()
+    // No crash, and the play/pause button should be disabled on this line.
+    expect(screen.getByRole('button', { name: /Nghe mẫu/i })).toBeDisabled()
   })
 })

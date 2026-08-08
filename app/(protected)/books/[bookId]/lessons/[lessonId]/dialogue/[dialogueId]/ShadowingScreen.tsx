@@ -1,10 +1,19 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { Mic, Pause, Play, Square } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight, Mic, Pause, Play, Square } from 'lucide-react'
 import type { Dialogue } from '@/lib/db/types'
 import { gradeSyllables, type GradeResult } from '@/lib/shadowing/pinyinGrading'
 import { useSpeechRecognition } from '@/lib/shadowing/useSpeechRecognition'
+
+const SPEED_STEPS = [1, 1.25, 0.75] as const
+
+function formatTime(time: number): string {
+  if (!Number.isFinite(time) || Number.isNaN(time)) return '0:00'
+  const m = Math.floor(time / 60)
+  const s = Math.floor(time % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
 
 export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -14,19 +23,53 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   const [permissionError, setPermissionError] = useState(false)
   const [isAutoPause, setIsAutoPause] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState<(typeof SPEED_STEPS)[number]>(1)
+  const [audioProgress, setAudioProgress] = useState(0)
+  const [durations, setDurations] = useState<number[]>(() => dialogue.lines.map(() => 0))
 
   const currentIndexRef = useRef(currentIndex)
   currentIndexRef.current = currentIndex
   const isAutoPauseRef = useRef(isAutoPause)
   isAutoPauseRef.current = isAutoPause
+  const playbackRateRef = useRef(playbackRate)
+  playbackRateRef.current = playbackRate
 
   const currentLine = dialogue.lines[currentIndex]
+  const totalDuration = durations.reduce((a, b) => a + b, 0)
+  const globalCurrentTime = durations.slice(0, currentIndex).reduce((a, b) => a + b, 0) + audioProgress
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const transcriptRef = useRef<string>('')
   const recordedAudioRef = useRef<HTMLAudioElement | null>(null)
   const sampleAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Preload every line's duration once (mirrors easy-chinese's approach) so
+  // the cumulative time display and seek bar can span the whole dialogue
+  // without waiting for each line's audio to load on demand. A line with no
+  // audio_url contributes 0 to the total rather than blocking the others.
+  useEffect(() => {
+    let cancelled = false
+    Promise.all(
+      dialogue.lines.map(
+        (line) =>
+          new Promise<number>((resolve) => {
+            if (!line.audio_url) {
+              resolve(0)
+              return
+            }
+            const probe = new Audio(line.audio_url)
+            probe.onloadedmetadata = () => resolve(probe.duration)
+            probe.onerror = () => resolve(0)
+          })
+      )
+    ).then((durs) => {
+      if (!cancelled) setDurations(durs)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [dialogue.lines])
 
   // Grading must wait for SpeechRecognition to genuinely finish, not for
   // MediaRecorder.onstop (which fires the instant the user clicks "stop").
@@ -50,12 +93,20 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
     }
   )
 
-  function playSample() {
-    if (!currentLine.audio_url) return
+  function playLineAt(index: number) {
+    const line = dialogue.lines[index]
+    if (!line.audio_url) {
+      setIsPlaying(false)
+      return
+    }
     sampleAudioRef.current?.pause()
-    const audio = new Audio(currentLine.audio_url)
+    const audio = new Audio(line.audio_url)
+    audio.playbackRate = playbackRateRef.current
     sampleAudioRef.current = audio
+    setAudioProgress(0)
     setIsPlaying(true)
+
+    audio.ontimeupdate = () => setAudioProgress(audio.currentTime)
 
     audio.onended = () => {
       if (isAutoPauseRef.current) {
@@ -67,15 +118,7 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
         setCurrentIndex(nextIndex)
         setResult(null)
         setRecordedUrl(null)
-        const nextLine = dialogue.lines[nextIndex]
-        if (nextLine.audio_url) {
-          const nextAudio = new Audio(nextLine.audio_url)
-          sampleAudioRef.current = nextAudio
-          nextAudio.onended = audio.onended
-          nextAudio.play()
-        } else {
-          setIsPlaying(false)
-        }
+        playLineAt(nextIndex)
       } else {
         setIsPlaying(false)
       }
@@ -84,9 +127,84 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
     audio.play()
   }
 
+  function playSample() {
+    playLineAt(currentIndexRef.current)
+  }
+
   function pauseSample() {
     sampleAudioRef.current?.pause()
     setIsPlaying(false)
+  }
+
+  function goToLine(index: number) {
+    if (index < 0 || index >= dialogue.lines.length) return
+    setCurrentIndex(index)
+    setResult(null)
+    setRecordedUrl(null)
+    playLineAt(index)
+  }
+
+  function handleSeek(e: React.ChangeEvent<HTMLInputElement>) {
+    const targetGlobalTime = Number(e.target.value)
+    let accumulated = 0
+    let targetIndex = dialogue.lines.length - 1
+    let localTime = 0
+
+    for (let i = 0; i < durations.length; i++) {
+      if (accumulated + durations[i] >= targetGlobalTime) {
+        targetIndex = i
+        localTime = targetGlobalTime - accumulated
+        break
+      }
+      accumulated += durations[i]
+    }
+
+    if (targetIndex === currentIndex) {
+      if (sampleAudioRef.current) {
+        sampleAudioRef.current.currentTime = localTime
+        setAudioProgress(localTime)
+      }
+      return
+    }
+
+    sampleAudioRef.current?.pause()
+    const line = dialogue.lines[targetIndex]
+    setCurrentIndex(targetIndex)
+    setResult(null)
+    setRecordedUrl(null)
+    setAudioProgress(localTime)
+    if (!line.audio_url) {
+      setIsPlaying(false)
+      return
+    }
+    const audio = new Audio(line.audio_url)
+    audio.playbackRate = playbackRateRef.current
+    audio.currentTime = localTime
+    sampleAudioRef.current = audio
+    audio.ontimeupdate = () => setAudioProgress(audio.currentTime)
+    audio.onended = () => {
+      if (isAutoPauseRef.current) {
+        setIsPlaying(false)
+        return
+      }
+      const nextIndex = currentIndexRef.current + 1
+      if (nextIndex < dialogue.lines.length) {
+        setCurrentIndex(nextIndex)
+        setResult(null)
+        setRecordedUrl(null)
+        playLineAt(nextIndex)
+      } else {
+        setIsPlaying(false)
+      }
+    }
+    if (isPlaying) audio.play()
+  }
+
+  function toggleSpeed() {
+    const currentPos = SPEED_STEPS.indexOf(playbackRate)
+    const next = SPEED_STEPS[(currentPos + 1) % SPEED_STEPS.length]
+    setPlaybackRate(next)
+    if (sampleAudioRef.current) sampleAudioRef.current.playbackRate = next
   }
 
   async function startRecording() {
@@ -153,39 +271,83 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
         </div>
       )}
 
-      <div className="flex items-center justify-between rounded-card-sm border border-card-border bg-white px-4 py-3 shadow-sm">
-        <button
-          type="button"
-          onClick={isPlaying ? pauseSample : playSample}
-          disabled={!currentLine.audio_url}
-          className={`flex items-center justify-center gap-2 rounded-btn px-4 py-2 text-sm font-bold transition-all ${
-            currentLine.audio_url
-              ? 'bg-brand-red text-white hover:bg-brand-red-dark'
-              : 'cursor-not-allowed bg-card-border text-ink-faint'
-          }`}
-        >
-          {isPlaying ? <Pause className="h-4 w-4" strokeWidth={2.5} /> : <Play className="h-4 w-4" strokeWidth={2.5} />}
-          {isPlaying ? 'Tạm dừng' : 'Nghe mẫu'}
-        </button>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-ink-faint">Tự động dừng</span>
+      <div className="flex flex-col gap-3 rounded-card-sm border border-card-border bg-white px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            role="switch"
-            aria-checked={isAutoPause}
-            aria-label="Tự động dừng"
-            onClick={() => setIsAutoPause((prev) => !prev)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-pill transition-colors ${
-              isAutoPause ? 'bg-brand-red' : 'bg-card-border'
+            onClick={() => (currentLine.audio_url ? (isPlaying ? pauseSample() : playSample()) : undefined)}
+            disabled={!currentLine.audio_url}
+            aria-label={isPlaying ? 'Tạm dừng' : 'Nghe mẫu'}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-pill transition-all ${
+              currentLine.audio_url
+                ? 'bg-brand-red text-white hover:bg-brand-red-dark'
+                : 'cursor-not-allowed bg-card-border text-ink-faint'
             }`}
           >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                isAutoPause ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+            {isPlaying ? <Pause className="h-4 w-4" strokeWidth={2.5} /> : <Play className="h-4 w-4" strokeWidth={2.5} />}
           </button>
+
+          <span className="w-[76px] shrink-0 text-sm font-semibold tabular-nums text-ink-faint">
+            {formatTime(globalCurrentTime)} / {formatTime(totalDuration)}
+          </span>
+
+          <input
+            type="range"
+            role="slider"
+            min={0}
+            max={totalDuration || 100}
+            value={globalCurrentTime}
+            onChange={handleSeek}
+            className="h-1.5 flex-1 cursor-pointer appearance-none rounded-pill bg-card-border accent-brand-red"
+          />
+
+          <button
+            type="button"
+            onClick={toggleSpeed}
+            className="w-10 shrink-0 text-center text-sm font-bold text-ink-faint transition-colors hover:text-brand-red"
+          >
+            {playbackRate}x
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-ink-faint">Tự động dừng</span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => goToLine(currentIndex - 1)}
+              disabled={currentIndex === 0}
+              aria-label="Câu trước"
+              className="text-ink-faint transition-colors hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-ink-faint"
+            >
+              <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+            </button>
+            <button
+              type="button"
+              onClick={() => goToLine(currentIndex + 1)}
+              disabled={currentIndex === dialogue.lines.length - 1}
+              aria-label="Câu sau"
+              className="text-ink-faint transition-colors hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-ink-faint"
+            >
+              <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isAutoPause}
+              aria-label="Tự động dừng"
+              onClick={() => setIsAutoPause((prev) => !prev)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-pill transition-colors ${
+                isAutoPause ? 'bg-brand-red' : 'bg-card-border'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isAutoPause ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 

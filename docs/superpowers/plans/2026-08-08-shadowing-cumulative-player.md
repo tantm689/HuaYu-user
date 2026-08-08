@@ -28,7 +28,7 @@
 - Consumes: `Dialogue`/`DialogueLine` types (unchanged), `gradeSyllables`, `useSpeechRecognition` (unchanged).
 - Produces: nothing consumed elsewhere — leaf UI component, no downstream interface changes.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Update the shared test fixture and mocks at the top of `tests/components/dialogue/ShadowingScreen.test.tsx`. The existing `MockAudio` class needs a `duration`/`onloadedmetadata` so duration-preloading can be exercised, and a `currentTime` setter that real code can assign to for seeking:
 
@@ -149,12 +149,12 @@ it('does not crash when a line has no audio_url (duration treated as 0, play dis
 })
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/components/dialogue/ShadowingScreen.test.tsx`
 Expected: FAIL — `role: 'slider'`, "Câu trước"/"Câu sau" buttons, speed button not found.
 
-- [ ] **Step 3: Implement the cumulative player**
+- [x] **Step 3: Implement the cumulative player**
 
 Replace `app/(protected)/books/[bookId]/lessons/[lessonId]/dialogue/[dialogueId]/ShadowingScreen.tsx` with:
 
@@ -633,12 +633,12 @@ Notes on the implementation:
 - `formatTime` is copied from the reference project's helper, adapted with a `Number.isFinite` guard so `Infinity`/`NaN` durations (e.g. before metadata loads) render as `0:00` instead of `NaN:NaN`.
 - The old standalone "Nghe mẫu" pill button is gone, replaced by a compact play/pause circle inside the player bar — accessible name switches between "Nghe mẫu" and "Tạm dừng" via `aria-label`, matching what the existing tests already query for.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/components/dialogue/ShadowingScreen.test.tsx`
 Expected: PASS (all previous tests + 6 new ones)
 
-- [ ] **Step 5: Run the full test suite and typecheck**
+- [x] **Step 5: Run the full test suite and typecheck**
 
 Run: `npm test`
 Expected: PASS — no regressions elsewhere.
@@ -651,7 +651,7 @@ Run: `npm run dev`, open a dialogue's Shadowing tab in Chrome with a lesson that
 - Dragging the seek bar jumps across line boundaries correctly (test with a dialogue with 3+ lines).
 - Recording, replay, and the "Tự động dừng" toggle's effect on grading all still behave exactly as before this change.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add "app/(protected)/books/[bookId]/lessons/[lessonId]/dialogue/[dialogueId]/ShadowingScreen.tsx" tests/components/dialogue/ShadowingScreen.test.tsx docs/superpowers/plans/2026-08-08-shadowing-cumulative-player.md
