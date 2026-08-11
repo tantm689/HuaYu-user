@@ -522,6 +522,20 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
               )
             })}
           </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-card-border pt-3 text-xs font-semibold text-ink-faint">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-success-text" />
+              Chính xác
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-ink-gold-text" />
+              Gần đúng — sai nhẹ
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-error-text" />
+              Thử lại
+            </span>
+          </div>
         </div>
       )}
 

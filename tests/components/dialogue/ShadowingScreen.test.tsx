@@ -603,4 +603,24 @@ describe('ShadowingScreen', () => {
     expect(recorderInstances[0].state).toBe('inactive')
     expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
   })
+
+  it('shows a fixed color legend under the result tile grid explaining green/yellow/red', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+    act(() => {
+      lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
+    })
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+    act(() => {
+      lastRecognition.onend()
+    })
+
+    expect(screen.getByText('Chính xác')).toBeInTheDocument()
+    expect(screen.getByText(/Gần đúng.*sai nhẹ/i)).toBeInTheDocument()
+    expect(screen.getByText('Thử lại')).toBeInTheDocument()
+  })
 })
