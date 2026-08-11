@@ -349,7 +349,7 @@ git commit -m "feat: add per-syllable alignment and punctuation filtering to pin
 
 Pairing each `alignment[i]` with its Hanzi character: `currentLine.text_zh` may itself contain punctuation that `pinyin-pro` strips from the syllable arrays (Task 1's filtering happens on the pinyin side, not on `text_zh`). To keep the tile grid's Hanzi characters aligned 1:1 with `alignment` entries, derive the punctuation-filtered Hanzi list the same way: strip any character from `text_zh` that is Chinese/Latin punctuation before zipping it with `alignment`. Since `alignment.length` always equals the punctuation-filtered target syllable count (per Task 1), and each Hanzi character maps 1:1 to one syllable in Mandarin, filtering `text_zh` down to only Hanzi characters (excluding punctuation) before zipping is safe.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add these test cases to `tests/components/dialogue/ShadowingScreen.test.tsx`, inside the existing `describe('ShadowingScreen', ...)` block. First, update the shared `dialogue` fixture's first line to use a sentence containing punctuation, so the punctuation-filtering behavior is exercised end-to-end (check the existing fixture's exact shape before editing — this plan assumes it currently has `l1` with `text_zh: '你好嗎'`; change ONLY the punctuation-related test's local fixture if editing the shared one risks breaking unrelated tests, per your judgment reading the file):
 
@@ -405,12 +405,12 @@ it('renders one tile per target syllable with the correct match/tone-mismatch/mi
 })
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/components/dialogue/ShadowingScreen.test.tsx`
 Expected: FAIL — no "Đang xử lý" button text exists yet; no elements with `data-testid="syllable-tile"` exist yet.
 
-- [ ] **Step 3: Implement the processing state and tile grid**
+- [x] **Step 3: Implement the processing state and tile grid**
 
 In `app/(protected)/books/[bookId]/lessons/[lessonId]/dialogue/[dialogueId]/ShadowingScreen.tsx`:
 
@@ -545,12 +545,12 @@ Notes:
 - Punctuation filtering on `text_zh` uses a CJK Unified Ideographs range check (`\u4e00-\u9fff`) rather than an explicit punctuation blocklist, since Hanzi ranges are far more stable to enumerate than the open-ended set of punctuation marks a dialogue line might contain.
 - `isGrading` is intentionally NOT reset by `startRecording` — a fresh `setResult(null)` already hides the old result card immediately when recording starts, so there's no window where a stale `isGrading=true` from a previous attempt could show; if this reasoning doesn't hold once you trace the actual state transitions, add an explicit `setIsGrading(false)` at the top of `startRecording` as a safety measure and note it in your report.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/components/dialogue/ShadowingScreen.test.tsx`
 Expected: PASS (all previous tests + 2 new ones)
 
-- [ ] **Step 5: Run the full test suite and typecheck**
+- [x] **Step 5: Run the full test suite and typecheck**
 
 Run: `npm test`
 Expected: PASS — no regressions elsewhere.

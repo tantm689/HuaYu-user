@@ -168,7 +168,13 @@ describe('ShadowingScreen', () => {
     act(() => {
       lastRecognition.onend()
     })
-    expect(screen.getByText(/không nghe rõ/i)).toBeInTheDocument()
+    // With no transcript at all, every target syllable tile shows "missing"
+    // (em dash) rather than the old "(không nghe rõ)" text line.
+    const tiles = screen.getAllByTestId('syllable-tile')
+    expect(tiles).toHaveLength(3)
+    tiles.forEach((tile) => {
+      expect(tile).toHaveTextContent('—')
+    })
   })
 
   it('shows the "Tự động dừng" toggle, defaulting to ON', () => {
@@ -401,5 +407,55 @@ describe('ShadowingScreen', () => {
     })
     expect(screen.getByRole('button', { name: /Câu trước/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /Phát lại từ đầu/i })).toBeEnabled()
+  })
+
+  it('shows a Đang xử lý (processing) state on the record button between stopping and the graded result', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+    // Recognition hasn't settled yet (onend not fired) - button should show processing.
+    expect(screen.getByRole('button', { name: /Đang xử lý/i })).toBeInTheDocument()
+
+    act(() => {
+      lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
+    })
+    act(() => {
+      lastRecognition.onend()
+    })
+    // Once graded, processing state clears and the normal record button returns.
+    expect(screen.queryByRole('button', { name: /Đang xử lý/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Ghi âm$/i })).toBeInTheDocument()
+  })
+
+  it('renders one tile per target syllable with the correct match/tone-mismatch/mismatch/missing color', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+    act(() => {
+      // Target is 你好嗎 (nǐ hǎo má) - transcript omits the last syllable entirely.
+      lastRecognition.onresult({ results: [[{ transcript: '你好' }]] })
+    })
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+    act(() => {
+      lastRecognition.onend()
+    })
+
+    // Three tiles for the three-syllable target, regardless of the shorter transcript.
+    const tiles = screen.getAllByTestId('syllable-tile')
+    expect(tiles).toHaveLength(3)
+    expect(tiles[0]).toHaveTextContent('你')
+    expect(tiles[0]).toHaveTextContent('nǐ')
+    expect(tiles[2]).toHaveTextContent('嗎')
+    // The third tile has no matching transcript syllable - must render without
+    // throwing and must be visually distinguished (checked via class name
+    // containing the error/missing token used for that state).
+    expect(tiles[2].className).toMatch(/error|missing/i)
   })
 })

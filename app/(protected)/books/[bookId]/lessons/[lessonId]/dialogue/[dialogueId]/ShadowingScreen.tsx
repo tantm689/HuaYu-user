@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Mic, Pause, Play, RotateCcw, Square } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Mic, Pause, Play, RotateCcw, Square } from 'lucide-react'
 import type { Dialogue } from '@/lib/db/types'
 import { gradeSyllables, type GradeResult } from '@/lib/shadowing/pinyinGrading'
 import { useSpeechRecognition } from '@/lib/shadowing/useSpeechRecognition'
@@ -20,6 +20,7 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null)
   const [result, setResult] = useState<GradeResult | null>(null)
+  const [isGrading, setIsGrading] = useState(false)
   const [permissionError, setPermissionError] = useState(false)
   const [isAutoPause, setIsAutoPause] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -88,6 +89,7 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
       transcriptRef.current = transcript
     },
     () => {
+      setIsGrading(false)
       if (!isAutoPauseRef.current) return
       setResult(gradeSyllables(currentLine.text_zh, transcriptRef.current))
     }
@@ -250,6 +252,7 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
     mediaRecorderRef.current?.stop()
     speech.stop()
     setIsRecording(false)
+    if (isAutoPauseRef.current) setIsGrading(true)
   }
 
   function playRecorded() {
@@ -399,6 +402,16 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
             <Square className="h-4 w-4" strokeWidth={2.5} />
             Dừng ghi âm
           </button>
+        ) : isGrading ? (
+          <button
+            type="button"
+            disabled
+            aria-label="Đang xử lý"
+            className="flex cursor-not-allowed items-center justify-center gap-2 rounded-btn bg-card-border px-8 py-3 text-sm font-bold tracking-wide text-ink-faint"
+          >
+            <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2.5} />
+            Đang xử lý...
+          </button>
         ) : (
           <button
             type="button"
@@ -447,15 +460,28 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
             {result.status === 'almost' && 'Gần đúng rồi, cố lên!'}
             {result.status === 'incorrect' && 'Chưa chính xác, thử lại nhé!'}
           </p>
-          <div className="flex flex-col gap-1 text-sm">
-            <p>
-              <span className="font-bold text-ink-faint">Mẫu: </span>
-              {result.targetSyllablesToned.join(' ')}
-            </p>
-            <p>
-              <span className="font-bold text-ink-faint">Bạn đọc: </span>
-              {result.transcriptSyllablesToned.join(' ') || '(không nghe rõ)'}
-            </p>
+          <div className="flex flex-wrap gap-2">
+            {result.alignment.map((syllable, index) => {
+              const hanzi = [...currentLine.text_zh].filter((ch) => /[一-鿿]/.test(ch))[index] ?? ''
+              const colorClasses =
+                syllable.status === 'matched'
+                  ? 'border-success-border bg-white text-success-text'
+                  : syllable.status === 'tone-mismatch'
+                    ? 'border-brand-gold/50 bg-white text-ink-gold-text'
+                    : 'border-error-border bg-white text-error-text'
+              return (
+                <div
+                  key={index}
+                  data-testid="syllable-tile"
+                  className={`flex flex-col items-center gap-0.5 rounded-card-sm border-2 px-3 py-2 ${colorClasses}`}
+                >
+                  <span className="font-han-title text-lg font-bold">{hanzi}</span>
+                  <span className="text-xs font-semibold">
+                    {syllable.status === 'missing' ? '—' : syllable.transcriptSyllableToned}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
