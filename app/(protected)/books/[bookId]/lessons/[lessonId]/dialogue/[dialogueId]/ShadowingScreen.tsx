@@ -90,7 +90,9 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   // reliable way to know which line the user was practicing when they
   // hit record, so grading is skipped entirely rather than guessed at.
   function stopMediaRecording() {
-    mediaRecorderRef.current?.stop()
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
     setIsRecording(false)
   }
 
@@ -108,7 +110,6 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
       // produces a spurious second failure.
       if (isRecordingRef.current) {
         stopMediaRecording()
-        if (isAutoPauseRef.current) setIsGrading(true)
       }
       setIsGrading(false)
       if (!isAutoPauseRef.current) return

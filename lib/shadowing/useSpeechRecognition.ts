@@ -43,6 +43,7 @@ export function useSpeechRecognition(
 
   const recognitionRef = useRef<any>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasEndedRef = useRef(false)
   const [isListening, setIsListening] = useState(false)
 
   const SpeechRecognitionCtor =
@@ -67,6 +68,7 @@ export function useSpeechRecognition(
     recognition.lang = 'zh-TW'
     recognition.continuous = false
     recognition.interimResults = false
+    hasEndedRef.current = false
 
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript
@@ -78,6 +80,7 @@ export function useSpeechRecognition(
     }
 
     recognition.onend = () => {
+      hasEndedRef.current = true
       clearGradingTimeout()
       setIsListening(false)
       onEndRef.current?.()
@@ -97,6 +100,8 @@ export function useSpeechRecognition(
       }
     }
     setIsListening(false)
+
+    if (hasEndedRef.current) return
 
     clearGradingTimeout()
     timeoutRef.current = setTimeout(() => {

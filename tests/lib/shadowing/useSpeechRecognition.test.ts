@@ -134,4 +134,31 @@ describe('useSpeechRecognition timeout', () => {
     expect(onTimeout).not.toHaveBeenCalled()
     expect(onEnd).toHaveBeenCalledTimes(1)
   })
+
+  it('does not arm a new timeout if stop() is called again after recognition.onend already fired', () => {
+    // Guards against a stray/duplicate stop() call (e.g. a second click)
+    // arriving after recognition already ended normally. Rescheduling a
+    // fresh timeout here would later fire a spurious onTimeout/onEnd long
+    // after a correct result was already shown.
+    const onResult = vi.fn()
+    const onEnd = vi.fn()
+    const onTimeout = vi.fn()
+    const { result } = renderHook(() => useSpeechRecognition(onResult, onEnd, onTimeout))
+
+    act(() => result.current.start())
+
+    // Recognition ends normally on its own, before any stop() call.
+    act(() => {
+      lastInstance?.onend?.()
+    })
+    expect(onEnd).toHaveBeenCalledTimes(1)
+
+    // A later, redundant stop() call must not arm a new grading timeout.
+    act(() => result.current.stop())
+
+    act(() => vi.advanceTimersByTime(10_000))
+
+    expect(onTimeout).not.toHaveBeenCalled()
+    expect(onEnd).toHaveBeenCalledTimes(1)
+  })
 })

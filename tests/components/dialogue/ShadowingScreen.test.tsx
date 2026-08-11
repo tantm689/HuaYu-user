@@ -53,6 +53,12 @@ class MockMediaRecorder {
     this.state = 'recording'
   }
   stop() {
+    // Real MediaRecorder throws InvalidStateError if stop() is called while
+    // already 'inactive' - this mock now matches that so double-stop bugs
+    // (like the one this test file is guarding against) are actually caught.
+    if (this.state === 'inactive') {
+      throw new DOMException("Failed to execute 'stop' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.", 'InvalidStateError')
+    }
     this.state = 'inactive'
     this.ondataavailable?.({ data: new Blob(['x']) })
     this.onstop?.()
@@ -561,6 +567,38 @@ describe('ShadowingScreen', () => {
     act(() => {
       lastRecognition.onend()
     })
+
+    expect(recorderInstances[0].state).toBe('inactive')
+    expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
+  })
+
+  it('does not call MediaRecorder.stop() twice when auto-stop (onend) races the manual "Dừng ghi âm" click', async () => {
+    // Real MediaRecorder.stop() throws InvalidStateError if called while
+    // already 'inactive' (see MockMediaRecorder.stop() above). If the user
+    // clicks "Dừng ghi âm" (which stops the recorder) at nearly the same
+    // moment recognition.onend fires natively, the onEnd handler must not
+    // call stop() again on the now-inactive recorder.
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+
+    // Manual stop click first - this stops the MediaRecorder (state -> inactive).
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+    expect(recorderInstances[0].state).toBe('inactive')
+
+    // Recognition settles afterward, as in a real race - onEnd must not
+    // attempt a second MediaRecorder.stop() call, which would throw.
+    expect(() => {
+      act(() => {
+        lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
+      })
+      act(() => {
+        lastRecognition.onend()
+      })
+    }).not.toThrow()
 
     expect(recorderInstances[0].state).toBe('inactive')
     expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
