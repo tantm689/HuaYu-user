@@ -31,6 +31,47 @@ const ALMOST_THRESHOLD = 0.7
 // never count toward alignment or accuracy.
 const PINYIN_SYLLABLE_PATTERN = /^[a-zāáǎàēéěèīíǐìōóǒòūúǔùüǖǘǚǜ]+$/i
 
+// Mandarin tone-3 sandhi: when two third-tone syllables are adjacent, the
+// FIRST is naturally pronounced as tone 2 in fluent speech (你好 "nǐ hǎo" is
+// actually said "ní hǎo"), but pinyin-pro's dictionary lookup always
+// returns the unsandhied tone-3 form. Without this, a learner who correctly
+// applies the sandhi rule is graded as making a tone error. Scoped
+// deliberately narrow: only ADJACENT tone-3 pairs are considered, evaluated
+// independently (no cascading through longer tone-3 chains, which follows
+// more complex rules outside this plan's scope) - and only tone-3-to-tone-2
+// shifting is modeled here, not the 不/一 sandhi rules (a separate, more
+// exception-heavy task).
+const TONE_MARK_SHIFT: Record<string, string> = {
+  ǎ: 'á',
+  ě: 'é',
+  ǐ: 'í',
+  ǒ: 'ó',
+  ǔ: 'ú',
+  ǚ: 'ǘ',
+}
+
+function isTone3(tonedSyllable: string): boolean {
+  return Object.keys(TONE_MARK_SHIFT).some((mark) => tonedSyllable.includes(mark))
+}
+
+function toSandhiShiftedTone2(tonedSyllable: string): string {
+  let shifted = tonedSyllable
+  for (const [tone3Mark, tone2Mark] of Object.entries(TONE_MARK_SHIFT)) {
+    shifted = shifted.replace(tone3Mark, tone2Mark)
+  }
+  return shifted
+}
+
+function computeSandhiEligibleIndices(targetSyllablesToned: string[]): Set<number> {
+  const eligible = new Set<number>()
+  for (let i = 0; i < targetSyllablesToned.length - 1; i++) {
+    if (isTone3(targetSyllablesToned[i]) && isTone3(targetSyllablesToned[i + 1])) {
+      eligible.add(i)
+    }
+  }
+  return eligible
+}
+
 function toSyllables(text: string, toneType: 'none' | 'symbol'): string[] {
   if (!text) return []
   return pinyin(text, { toneType, type: 'array' }).filter((s) => PINYIN_SYLLABLE_PATTERN.test(s))
@@ -82,6 +123,7 @@ function buildAlignment(
   transcriptSyllablesToned: string[]
 ): SyllableAlignment[] {
   const grid = syllableAlignment(targetSyllables, transcriptSyllables)
+  const sandhiEligible = computeSandhiEligibleIndices(targetSyllablesToned)
   const steps: SyllableAlignment[] = []
 
   let i = targetSyllables.length
@@ -93,13 +135,17 @@ function buildAlignment(
       const targetIdx = i - 1
       const transcriptIdx = j - 1
       const toneless = targetSyllables[targetIdx] === transcriptSyllables[transcriptIdx]
-      const toned = targetSyllablesToned[targetIdx] === transcriptSyllablesToned[transcriptIdx]
+      const targetToned = targetSyllablesToned[targetIdx]
+      const transcriptToned = transcriptSyllablesToned[transcriptIdx]
+      const tonedMatch =
+        targetToned === transcriptToned ||
+        (sandhiEligible.has(targetIdx) && toSandhiShiftedTone2(targetToned) === transcriptToned)
       steps.push({
-        status: !toneless ? 'mismatched' : toned ? 'matched' : 'tone-mismatch',
+        status: !toneless ? 'mismatched' : tonedMatch ? 'matched' : 'tone-mismatch',
         targetSyllable: targetSyllables[targetIdx],
-        targetSyllableToned: targetSyllablesToned[targetIdx],
+        targetSyllableToned: targetToned,
         transcriptSyllable: transcriptSyllables[transcriptIdx],
-        transcriptSyllableToned: transcriptSyllablesToned[transcriptIdx],
+        transcriptSyllableToned: transcriptToned,
       })
       i -= 1
       j -= 1
