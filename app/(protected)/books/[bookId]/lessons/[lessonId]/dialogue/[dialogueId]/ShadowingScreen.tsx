@@ -98,6 +98,13 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
       setResult(gradeSyllables(currentLine.text_zh, transcriptRef.current))
     },
     () => {
+      // Set the ref synchronously here - do NOT rely solely on the render-
+      // derived `gradingTimedOutRef.current = gradingTimedOut` sync below.
+      // onTimeout and onEnd fire back-to-back inside the same native
+      // setTimeout callback in useSpeechRecognition's stop(), with no React
+      // render able to run in between, so a ref that's only ever populated
+      // by a render would still read stale (false) when onEnd checks it.
+      gradingTimedOutRef.current = true
       setGradingTimedOut(true)
     }
   )

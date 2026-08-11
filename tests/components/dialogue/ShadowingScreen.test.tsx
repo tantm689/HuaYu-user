@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import ShadowingScreen from '@/app/(protected)/books/[bookId]/lessons/[lessonId]/dialogue/[dialogueId]/ShadowingScreen'
 import type { Dialogue } from '@/lib/db/types'
+import * as pinyinGrading from '@/lib/shadowing/pinyinGrading'
 
 const dialogue: Dialogue = {
   id: 'd1',
@@ -480,6 +481,40 @@ describe('ShadowingScreen', () => {
       expect(screen.queryByRole('button', { name: /Đang xử lý/i })).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: /^Ghi âm$/i })).toBeInTheDocument()
     } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('never grades the transcript when the grading timeout fires (onTimeout and onEnd run synchronously in the same tick)', async () => {
+    // Regression test: onTimeout (sets gradingTimedOut) and onEnd (which must
+    // skip grading when timed out) fire back-to-back inside the SAME native
+    // setTimeout callback in useSpeechRecognition's stop(), with no React
+    // render in between. A guard that only reads a ref populated by a render
+    // (`gradingTimedOutRef.current = gradingTimedOut` in the render body) is
+    // still stale at the moment onEnd reads it, so gradeSyllables must never
+    // be reached on this path - it can only be trusted if the ref is set
+    // synchronously inside the onTimeout callback itself.
+    const gradeSpy = vi.spyOn(pinyinGrading, 'gradeSyllables')
+    vi.useFakeTimers()
+    try {
+      render(<ShadowingScreen dialogue={dialogue} />)
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+      })
+      act(() => {
+        fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+      })
+
+      // recognition.onend deliberately never fires - simulate the hang.
+      act(() => {
+        vi.advanceTimersByTime(10_000)
+      })
+
+      expect(screen.getByText(/Không nhận diện được/i)).toBeInTheDocument()
+      expect(gradeSpy).not.toHaveBeenCalled()
+      expect(screen.queryByTestId('syllable-tile')).not.toBeInTheDocument()
+    } finally {
+      gradeSpy.mockRestore()
       vi.useRealTimers()
     }
   })
