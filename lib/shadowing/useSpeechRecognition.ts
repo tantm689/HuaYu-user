@@ -9,22 +9,28 @@ export interface UseSpeechRecognitionResult {
   stop: () => void
 }
 
+const GRADING_TIMEOUT_MS = 10_000
+
 // Stale-closure hazard (hit twice in the prior implementation attempt):
-// onResult/onEnd are captured by the recognition instance's event handlers
-// at the time `start()` runs, so they must always read the LATEST callback,
-// not the one from whichever render created the recognition instance. Refs
-// sidestep this.
+// onResult/onEnd/onTimeout are captured by the recognition instance's event
+// handlers at the time `start()` runs, so they must always read the LATEST
+// callback, not the one from whichever render created the recognition
+// instance. Refs sidestep this.
 //
 // `onEnd` fires from `recognition.onend`, which the Web Speech API spec
 // guarantees always runs (after `onresult` or `onerror`, whichever the
-// browser reaches first). Callers should defer any grading/consumption of
-// the recognized transcript until `onEnd` fires, rather than assuming
-// `onResult` has already run by the time they need the transcript -
-// `onresult` is asynchronous and often arrives after the user has already
-// clicked "stop" elsewhere in the UI.
+// browser reaches first) - EXCEPT when the browser is still processing a
+// long captured audio buffer (e.g. the user kept talking well past the
+// target sentence after clicking "stop"), which can delay `onend`
+// indefinitely in practice. The timeout below is a fallback for that case:
+// if `onend` hasn't fired within GRADING_TIMEOUT_MS of calling stop(), we
+// force the same "done" transition ourselves (via onEnd) so the caller's
+// UI never hangs, and separately signal onTimeout so the caller can show an
+// error instead of grading a possibly-truncated transcript.
 export function useSpeechRecognition(
   onResult: (transcript: string) => void,
-  onEnd?: () => void
+  onEnd?: () => void,
+  onTimeout?: () => void
 ): UseSpeechRecognitionResult {
   const onResultRef = useRef(onResult)
   onResultRef.current = onResult
@@ -32,7 +38,11 @@ export function useSpeechRecognition(
   const onEndRef = useRef(onEnd)
   onEndRef.current = onEnd
 
+  const onTimeoutRef = useRef(onTimeout)
+  onTimeoutRef.current = onTimeout
+
   const recognitionRef = useRef<any>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isListening, setIsListening] = useState(false)
 
   const SpeechRecognitionCtor =
@@ -41,6 +51,13 @@ export function useSpeechRecognition(
       : undefined
 
   const isSupported = Boolean(SpeechRecognitionCtor)
+
+  const clearGradingTimeout = () => {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }
 
   const start = useCallback(() => {
     if (!SpeechRecognitionCtor) return
@@ -61,12 +78,14 @@ export function useSpeechRecognition(
     }
 
     recognition.onend = () => {
+      clearGradingTimeout()
       setIsListening(false)
       onEndRef.current?.()
     }
 
     setIsListening(true)
     recognition.start()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- clearGradingTimeout is stable across renders (closes only over refs)
   }, [SpeechRecognitionCtor])
 
   const stop = useCallback(() => {
@@ -78,6 +97,14 @@ export function useSpeechRecognition(
       }
     }
     setIsListening(false)
+
+    clearGradingTimeout()
+    timeoutRef.current = setTimeout(() => {
+      timeoutRef.current = null
+      onTimeoutRef.current?.()
+      onEndRef.current?.()
+    }, GRADING_TIMEOUT_MS)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- clearGradingTimeout is stable across renders (closes only over refs)
   }, [])
 
   return { isSupported, isListening, start, stop }

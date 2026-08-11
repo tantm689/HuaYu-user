@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useSpeechRecognition } from '@/lib/shadowing/useSpeechRecognition'
 
@@ -83,6 +83,55 @@ describe('useSpeechRecognition', () => {
       lastInstance?.onerror?.({ error: 'no-speech' })
       lastInstance?.onend?.()
     })
+    expect(onEnd).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('useSpeechRecognition timeout', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('calls onTimeout and onEnd if recognition.onend never fires within 10 seconds of stop()', () => {
+    const onResult = vi.fn()
+    const onEnd = vi.fn()
+    const onTimeout = vi.fn()
+    const { result } = renderHook(() => useSpeechRecognition(onResult, onEnd, onTimeout))
+
+    act(() => result.current.start())
+    act(() => result.current.stop())
+    // recognition.onend deliberately never fires (simulating a hang)
+
+    act(() => vi.advanceTimersByTime(10_000))
+
+    expect(onTimeout).toHaveBeenCalledTimes(1)
+    expect(onEnd).toHaveBeenCalledTimes(1)
+    expect(result.current.isListening).toBe(false)
+  })
+
+  it('does not call onTimeout if recognition.onend fires before the 10-second deadline', () => {
+    const onResult = vi.fn()
+    const onEnd = vi.fn()
+    const onTimeout = vi.fn()
+    const { result } = renderHook(() => useSpeechRecognition(onResult, onEnd, onTimeout))
+
+    act(() => result.current.start())
+    act(() => result.current.stop())
+
+    // Real onend fires quickly, well before the timeout - same triggering
+    // pattern used by the pre-existing "invokes onEnd when recognition.onend
+    // fires" test above (lastInstance?.onend?.()).
+    act(() => {
+      lastInstance?.onend?.()
+    })
+
+    act(() => vi.advanceTimersByTime(10_000))
+    // onend already fired and cleared the timer, so onTimeout must not fire.
+    expect(onTimeout).not.toHaveBeenCalled()
     expect(onEnd).toHaveBeenCalledTimes(1)
   })
 })

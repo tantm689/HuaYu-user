@@ -22,6 +22,7 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   const [result, setResult] = useState<GradeResult | null>(null)
   const [isGrading, setIsGrading] = useState(false)
   const [permissionError, setPermissionError] = useState(false)
+  const [gradingTimedOut, setGradingTimedOut] = useState(false)
   const [isAutoPause, setIsAutoPause] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackRate, setPlaybackRate] = useState<(typeof SPEED_STEPS)[number]>(1)
@@ -32,6 +33,8 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   currentIndexRef.current = currentIndex
   const isAutoPauseRef = useRef(isAutoPause)
   isAutoPauseRef.current = isAutoPause
+  const gradingTimedOutRef = useRef(gradingTimedOut)
+  gradingTimedOutRef.current = gradingTimedOut
   const playbackRateRef = useRef(playbackRate)
   playbackRateRef.current = playbackRate
 
@@ -91,7 +94,11 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
     () => {
       setIsGrading(false)
       if (!isAutoPauseRef.current) return
+      if (gradingTimedOutRef.current) return
       setResult(gradeSyllables(currentLine.text_zh, transcriptRef.current))
+    },
+    () => {
+      setGradingTimedOut(true)
     }
   )
 
@@ -220,6 +227,7 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
       setIsPlaying(false)
       setPermissionError(false)
       setResult(null)
+      setGradingTimedOut(false)
       transcriptRef.current = ''
       chunksRef.current = []
 
@@ -437,7 +445,13 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
         </p>
       )}
 
-      {isAutoPause && result && (
+      {gradingTimedOut && (
+        <p className="text-center text-sm font-semibold text-error-text">
+          Không nhận diện được, vui lòng thử lại.
+        </p>
+      )}
+
+      {isAutoPause && result && !gradingTimedOut && (
         <div
           className={`flex flex-col gap-3 rounded-card-sm border p-5 ${
             result.status === 'correct'

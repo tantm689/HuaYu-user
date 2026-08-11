@@ -458,4 +458,29 @@ describe('ShadowingScreen', () => {
     // containing the error/missing token used for that state).
     expect(tiles[2].className).toMatch(/error|missing/i)
   })
+
+  it('shows a "not recognized, try again" message and clears processing state if recognition never settles within 10 seconds', async () => {
+    vi.useFakeTimers()
+    try {
+      render(<ShadowingScreen dialogue={dialogue} />)
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+      })
+      act(() => {
+        fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+      })
+      expect(screen.getByRole('button', { name: /Đang xử lý/i })).toBeInTheDocument()
+
+      // recognition.onend deliberately never fires - simulate the hang.
+      act(() => {
+        vi.advanceTimersByTime(10_000)
+      })
+
+      expect(screen.getByText(/Không nhận diện được/i)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Đang xử lý/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^Ghi âm$/i })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
