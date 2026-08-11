@@ -37,6 +37,8 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   gradingTimedOutRef.current = gradingTimedOut
   const playbackRateRef = useRef(playbackRate)
   playbackRateRef.current = playbackRate
+  const isRecordingRef = useRef(isRecording)
+  isRecordingRef.current = isRecording
 
   const currentLine = dialogue.lines[currentIndex]
   const totalDuration = durations.reduce((a, b) => a + b, 0)
@@ -87,11 +89,27 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   // continuous playback ("Tự động dừng" OFF) is active, there is no
   // reliable way to know which line the user was practicing when they
   // hit record, so grading is skipped entirely rather than guessed at.
+  function stopMediaRecording() {
+    mediaRecorderRef.current?.stop()
+    setIsRecording(false)
+  }
+
   const speech = useSpeechRecognition(
     (transcript) => {
       transcriptRef.current = transcript
     },
     () => {
+      // SpeechRecognition can end on its own (browser detected silence)
+      // before the user clicks "Dừng ghi âm" - continuous=false means the
+      // recognizer doesn't wait indefinitely. When that happens, the
+      // recording (MediaRecorder) and isRecording state are still running
+      // and must be stopped here too, exactly as stopRecording() would -
+      // otherwise a later manual click hits an already-ended recognizer and
+      // produces a spurious second failure.
+      if (isRecordingRef.current) {
+        stopMediaRecording()
+        if (isAutoPauseRef.current) setIsGrading(true)
+      }
       setIsGrading(false)
       if (!isAutoPauseRef.current) return
       if (gradingTimedOutRef.current) return
@@ -264,9 +282,8 @@ export default function ShadowingScreen({ dialogue }: { dialogue: Dialogue }) {
   }
 
   function stopRecording() {
-    mediaRecorderRef.current?.stop()
+    stopMediaRecording()
     speech.stop()
-    setIsRecording(false)
     if (isAutoPauseRef.current) setIsGrading(true)
   }
 

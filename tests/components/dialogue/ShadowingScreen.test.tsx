@@ -115,13 +115,13 @@ describe('ShadowingScreen', () => {
       fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
     })
     act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+    act(() => {
       lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
     })
     act(() => {
       lastRecognition.onend()
-    })
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
     })
     expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Phát lại ghi âm/i })).toBeEnabled()
@@ -517,5 +517,52 @@ describe('ShadowingScreen', () => {
       gradeSpy.mockRestore()
       vi.useRealTimers()
     }
+  })
+
+  it('auto-stops recording and grades the result when SpeechRecognition ends on its own before the user clicks "Dừng ghi âm"', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+
+    // Browser detected silence and auto-stopped recognition - the user never
+    // clicked "Dừng ghi âm". This must behave exactly as if they had.
+    act(() => {
+      lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
+    })
+    act(() => {
+      lastRecognition.onend()
+    })
+
+    // Recording itself must have been stopped (MediaRecorder.stop() called),
+    // not left running - otherwise a later manual stop would hit a broken
+    // second attempt on an already-ended recognizer.
+    expect(recorderInstances[0].state).toBe('inactive')
+    expect(screen.getByRole('button', { name: /^Ghi âm$/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Dừng ghi âm/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Đang xử lý/i })).not.toBeInTheDocument()
+
+    // Result must be graded and shown, same as the manual-stop path.
+    expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Phát lại ghi âm/i })).toBeEnabled()
+  })
+
+  it('still works normally when the user manually clicks "Dừng ghi âm" before recognition ends (no double-stop)', async () => {
+    render(<ShadowingScreen dialogue={dialogue} />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Ghi âm$/i }))
+    })
+    act(() => {
+      lastRecognition.onresult({ results: [[{ transcript: '你好嗎' }]] })
+    })
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Dừng ghi âm/i }))
+    })
+    act(() => {
+      lastRecognition.onend()
+    })
+
+    expect(recorderInstances[0].state).toBe('inactive')
+    expect(screen.getByText(/Phát âm chính xác/i)).toBeInTheDocument()
   })
 })
